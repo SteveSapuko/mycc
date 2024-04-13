@@ -1,7 +1,11 @@
 mod token;
 mod lexer;
+mod parser;
+mod expr;
 
 use lexer::*;
+use parser::*;
+
 
 use std::process::exit;
 use std::{fs::File, io::Read};
@@ -23,7 +27,22 @@ fn main() {
         }
     };
 
-    for l in lexemes {
+    for l in &lexemes {
         println!("{}", l);
+    }
+
+    println!("");
+
+    let mut parser = Parser::new(lexemes);
+    let ast = match parser.parse() {
+        Ok(t) => t,
+        Err(e) => {
+            println!("{}", e);
+            exit(0);
+        }
+    };
+
+    for e in ast {
+        println!("{}", e);
     }
 }

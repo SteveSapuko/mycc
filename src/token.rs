@@ -1,4 +1,4 @@
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Token {
     Key(String),
     Op(String),
@@ -19,11 +19,14 @@ pub enum Token {
     EOF,
 }
 
-#[derive(Debug)]
+pub const ID_TOKEN: Token = Token::Id(String::new());
+pub const LIT_TOKEN: Token = Token::Lit(String::new());
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct Lexeme {
-    tok: Token,
-    line: usize,
-    col: usize,
+    pub tok: Token,
+    pub line: usize,
+    pub col: usize,
 }
 
 impl Lexeme {
@@ -34,16 +37,27 @@ impl Lexeme {
             tok: tok
         }
     }
+
+    pub fn data(&self) -> String {
+        match self.tok.clone() {
+            Token::Key(s) => s,
+            Token::Op(s) => s,
+            Token::Cond(s) => s,
+            Token::Id(s) => s,
+            Token::Lit(s) => s,
+            _ => panic!("No data for this token")
+        }
+    }
 }
 
 impl std::fmt::Display for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Key(s) => write!(f, "Key {}", s),
-            Self::Op(s) => write!(f, "Op {}", s),
-            Self::Cond(s) => write!(f, "Cond {}", s),
-            Self::Id(s) => write!(f, "Id {}", s),
-            Self::Lit(s) => write!(f, "Lit {}", s),
+            Self::Key(s) => write!(f, "{}", s),
+            Self::Op(s) => write!(f, "{}", s),
+            Self::Cond(s) => write!(f, "{}", s),
+            Self::Id(s) => write!(f, "{}", s),
+            Self::Lit(s) => write!(f, "{}", s),
             Self::ParenOpen => write!(f, "("),
             Self::ParenClose => write!(f, ")"),
             Self::SquareOpen => write!(f, "["),
@@ -62,6 +76,6 @@ impl std::fmt::Display for Token {
 
 impl std::fmt::Display for Lexeme {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} at ln: {} col: {}", self.tok, self.line, self.col)
+        write!(f, "{}", self.tok)
     }
 }
