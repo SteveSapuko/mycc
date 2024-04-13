@@ -2,6 +2,7 @@ mod token;
 mod lexer;
 mod parser;
 mod expr;
+mod stmt;
 
 use lexer::*;
 use parser::*;
