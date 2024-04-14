@@ -1,5 +1,4 @@
 use super::*;
-use super::stmt_parsing::*;
 
 impl Parser {
     pub fn parse_expr(&mut self) -> Result<Expr, &'static str> {
@@ -141,13 +140,35 @@ impl Parser {
             return Ok(Expr::Primary(Box::new(PrimaryExpr::Grouping(e))))
         }
 
+        //Ref
         if self.match_tok(Token::Op("&".to_string())) || self.match_tok(Token::Op("*".to_string())) {
             let operator = self.previous();
             let var = self.parse_var()?;
 
             return Ok(Expr::Primary(Box::new(PrimaryExpr::Ref(operator, var))))
         }
+
+        if self.look_ahead().tok == Token::Col {
+            if !self.match_tok_type(ID_TOKEN) {
+                return Err("Expected Identifier for Enum Name")
+            }
+
+            let name = self.previous();
+            self.match_tok(Token::Col);
+            if !self.match_tok(Token::Col) {
+                return Err("Expected Double Colon :: after Enum Name")
+            }
+
+            if !self.match_tok_type(ID_TOKEN) {
+                return Err("Expected Identifier for Enum Variant")
+            }
+            let variant = self.previous();
+
+            return Ok(Expr::Primary(Box::new(PrimaryExpr::EnumVariant(name, variant))))
+
+        }
         
+        //Variable Access
         let var = self.parse_var()?;
 
         Ok(Expr::Primary(Box::new(PrimaryExpr::Variable(var))))
@@ -162,9 +183,9 @@ impl Parser {
                 Err(_) => return Err("Number Literal Error")
             };
 
-            if num < u32::MAX.into() {
-                if num < u16::MAX.into() {
-                    if num < u8::MAX.into() {
+            if num <= u32::MAX.into() {
+                if num <= u16::MAX.into() {
+                    if num <= u8::MAX.into() {
                         return Ok(NumLiteral::U8(num as u8))
                     }
                     return Ok(NumLiteral::U16(num as u16))

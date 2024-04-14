@@ -5,7 +5,6 @@ use crate::stmt::*;
 mod expr_parsing;
 mod stmt_parsing;
 
-use std::any::Any;
 use std::mem::discriminant;
 
 pub struct Parser {
@@ -21,16 +20,31 @@ impl Parser {
         }
     }
 
-    pub fn parse(&mut self) -> Result<Vec<Expr>, &'static str> {
-        let mut ast: Vec<Expr> = vec![];
+    pub fn parse(&mut self) -> Result<Vec<Stmt>, &'static str> {
+        let mut ast: Vec<Stmt> = vec![];
 
         while self.current().tok != Token::EOF {
-            ast.push(self.parse_expr()?);
+            ast.push(self.parse_stmt()?);
+        }
+
+        for stmt in ast.iter_mut() {
+            if let Err(err_position) = stmt.neg_unary_literals() {
+                self.change_ptr_to_lexeme(err_position);
+                return Err("Cannot Fit Literal into i64")
+            }
         }
 
         Ok(ast)
     }
     
+    fn change_ptr_to_lexeme(&mut self, target: Lexeme) {
+        self.ptr = 0;
+
+        while self.data[self.ptr] != target {
+            self.ptr += 1;
+        }
+    }
+
     fn match_tok(&mut self, t: Token) -> bool {
         if self.current().tok == t {
             self.ptr += 1;

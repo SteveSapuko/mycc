@@ -44,7 +44,7 @@ fn main() {
         }
     };
 
-    for e in ast {
-        println!("{}", e);
+    for s in ast {
+        println!("{:#?}", s);
     }
 }

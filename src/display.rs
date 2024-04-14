@@ -24,17 +24,6 @@ impl Display for Parameters {
     }
 }
 
-impl Display for VarDeclr {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Declare: {}  Type: {}", self.name, self.var_type)?;
-        if let Some(t) = &self.value {
-            write!(f, "  Value: {:?}", t)?;
-        }
-
-        Ok(())
-    }
-}
-
 impl Display for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -96,7 +85,7 @@ impl Display for Expr {
                 match &**t {
                     PrimaryExpr::Grouping(t) => write!(f, "{}", t),
                     PrimaryExpr::NumLiteral(t) => write!(f, "{}", t),
-                    PrimaryExpr::EnumVariant(t, t2) => write!(f, "Enum: {} Variant: {}", t, t2),
+                    PrimaryExpr::EnumVariant(t, t2) => write!(f, "({}::{})", t, t2),
                     PrimaryExpr::Variable(t) => write!(f, "{}", t),
                     PrimaryExpr::Ref(t, t2) => write!(f, "Ref {} on {}", t, t2),
                 }
@@ -128,5 +117,55 @@ impl Display for Variable {
 impl Display for BinaryExpr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "({} {} {})", self.left, self.operator, self.right)       
+    }
+}
+
+impl Display for Stmt {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::VarDeclr(name, t, v) => {
+                write!(f, "Declare Var: {} Type: {}", name, t)?;
+                if let Some(v) = v {
+                    write!(f, " Value: {}", v)?;
+                }
+            }
+
+            Self::Block(b) => {
+                write!(f, "Block:")?;
+                for s in b {
+                    write!(f, "\n{}", s)?;
+                }
+            } 
+
+            Self::BreakStmt(_) => write!(f, "Break")?,
+
+            Self::EnumDeclr(n, v) => {
+                write!(f, "Declare Enum: {} Variants:", n)?;
+                for v in v {
+                    write!(f, "\n{}", v)?;
+                }
+            }
+
+            Self::ExprStmt(e) => write!(f, "ExprStmt {}", e)?,
+
+            Self::FnDeclr(n, arg, ret_t, b) => write!(f, "Declare Fn: {} Params: {} RetType: {} Body: {}", n, arg, ret_t, b)?,
+
+            Self::IfStmt(c, t, fb) => {
+                write!(f, "If {} Do\n{}", c, t)?;
+                if let Some(fb) = fb {
+                    write!(f, "\nElse Do:\n{}", fb)?;
+                }
+            }
+
+            Self::LoopStmt(b) => write!(f, "Loop Body:\n{}", b)?,
+
+            Self::ReturnStmt(_, e) => write!(f, "Return {}", e)?,
+
+            Self::StructDeclr(n, fields) => write!(f, "Declare Struct: {} Fields: {}", n, fields)?,
+
+            Self::WhileStmt(c, b) => write!(f, "While {} Do: \n{}", c, b)?
+        }
+
+        Ok(())
     }
 }
