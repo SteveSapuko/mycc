@@ -21,19 +21,11 @@ impl Parser {
         }
     }
 
-    pub fn parse(&mut self) -> Result<Vec<Box<dyn Stmt>>, &'static str> {
-        let mut ast: Vec<Box<dyn Stmt>> = vec![];
+    pub fn parse(&mut self) -> Result<Vec<Expr>, &'static str> {
+        let mut ast: Vec<Expr> = vec![];
 
         while self.current().tok != Token::EOF {
-            ast.push(self.parse_declr()?);
-        }
-
-        for stmt in ast.iter_mut() {
-            for e in stmt.get_mut_expressions() {
-                if e.get_type() == "UnaryExpr" {
-                    if e.
-                }
-            }
+            ast.push(self.parse_expr()?);
         }
 
         Ok(ast)

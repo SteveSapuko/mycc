@@ -3,6 +3,7 @@ mod lexer;
 mod parser;
 mod expr;
 mod stmt;
+mod display;
 
 use lexer::*;
 use parser::*;

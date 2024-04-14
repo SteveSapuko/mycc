@@ -55,33 +55,3 @@ impl Lexeme {
         }
     }
 }
-
-impl std::fmt::Display for Token {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Key(s) => write!(f, "{}", s),
-            Self::Op(s) => write!(f, "{}", s),
-            Self::Cond(s) => write!(f, "{}", s),
-            Self::Id(s) => write!(f, "{}", s),
-            Self::Lit(s) => write!(f, "{}", s),
-            Self::ParenOpen => write!(f, "("),
-            Self::ParenClose => write!(f, ")"),
-            Self::SquareOpen => write!(f, "["),
-            Self::SquareClose => write!(f, "]"),
-            Self::CurlyOpen => write!(f, "{{"),
-            Self::CurlyClose => write!(f, "}}"),
-            Self::SemiCol => write!(f, ";"),
-            Self::Col => write!(f, ":"),
-            Self::Comma => write!(f, ","),
-            Self::Period => write!(f, "."),
-            Self::Arrow => write!(f, "->"),
-            Self::EOF => write!(f, "EOF"),
-        }
-    }
-}
-
-impl std::fmt::Display for Lexeme {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.tok)
-    }
-}
