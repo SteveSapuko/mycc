@@ -48,7 +48,7 @@ impl Lexer {
         ^ << |
         ^ >> |
         ^ \|(?!\|) | #single pipe
-        ^ \! |
+        ^ \! (?!\=)|
         ^ \~\\").unwrap();
         
         let reg_cond = Regex::new(r"(?x)
@@ -58,6 +58,7 @@ impl Lexer {
         ^ >= |
         ^ < (?!<) |
         ^ > (?!>) |
+        ^ \!\= |
         ^ \=\=").unwrap();
 
         let reg_id = Regex::new(r"^[_[[:alpha:]]][_@[[:alnum:]]]*").unwrap();
