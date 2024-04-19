@@ -9,7 +9,7 @@ impl Parser {
         let mut left = self.parse_equality()?;
 
         if self.match_tok(Token::Op("=".to_string())) {
-            let right = self.parse_assign()?;;
+            let right = self.parse_assign()?;
 
             left = Expr::Assign(Box::new((left, right)))
         }
@@ -225,7 +225,7 @@ impl Parser {
 
         let id = self.previous();
         let mut result = Variable::Id(id);
-        
+
         while self.current().tok == Token::Period || self.current().tok == Token::SquareOpen {
             if self.match_tok(Token::Period) {
                 let field = self.parse_var()?;
@@ -243,6 +243,8 @@ impl Parser {
                 result = Variable::Array(Box::new(result), index);
             }
         }
+
+        println!("\n---\n{:#?}\n---", result);
 
         return Ok(result)
     }

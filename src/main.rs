@@ -4,15 +4,20 @@ mod parser;
 mod expr;
 mod stmt;
 mod display;
+mod semantics;
+mod types;
 
 use lexer::*;
 use parser::*;
+use semantics::check_semantics;
 
 
 use std::process::exit;
 use std::{fs::File, io::Read};
 
 fn main() {
+    //std::env::set_var("RUST_BACKTRACE", "1");
+
     let mut f = File::open("program.txt").unwrap();
     let mut text = String::new();
     f.read_to_string(&mut text).unwrap();
@@ -44,7 +49,15 @@ fn main() {
         }
     };
 
-    for s in ast {
+    for s in &ast {
         println!("{}", s);
     }
+
+    println!("\n---\n");
+
+    match check_semantics(&ast) {
+        Ok(_) => println!("success"),
+        Err(e) => println!("error - {:?}", e)
+    }
+
 }

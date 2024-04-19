@@ -3,7 +3,7 @@ use crate::expr::*;
 use std::fmt::Debug;
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Stmt {
     VarDeclr(Lexeme, TypeDeclr, Option<Expr>),
     FnDeclr(Lexeme, Parameters, TypeDeclr, Box<Stmt>),
@@ -19,14 +19,26 @@ pub enum Stmt {
     Block(Vec<Stmt>),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum TypeDeclr {
     Basic(Lexeme),
     Pointer(Box<TypeDeclr>),
     Array(Box<TypeDeclr>, u16),
 }
 
-#[derive(Debug)]
+impl TypeDeclr {
+    pub fn get_id(&self) -> Lexeme {
+        match self {
+            TypeDeclr::Basic(l) => l.clone(),
+
+            TypeDeclr::Array(item, _) => item.get_id(),
+
+            TypeDeclr::Pointer(p_type) => p_type.get_id()
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct Parameters {
     pub params: Vec<(Lexeme, TypeDeclr)>
 }

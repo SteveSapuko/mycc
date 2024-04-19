@@ -3,7 +3,7 @@ use crate::stmt::TypeDeclr;
 use crate::token::*;
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Expr {
     Assign(Box<(Expr, Expr)>),
     Equality(Box<BinaryExpr>),
@@ -16,7 +16,7 @@ pub enum Expr {
     Primary(Box<PrimaryExpr>),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum PrimaryExpr {
     Grouping(Expr),
     NumLiteral(NumLiteral),
@@ -25,7 +25,7 @@ pub enum PrimaryExpr {
     Ref(Lexeme, Variable),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct BinaryExpr {
     pub left: Expr,
     pub operator: Lexeme,
@@ -85,14 +85,14 @@ impl NumLiteral {
 }
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Variable {
     Id(Lexeme),
     StructField(Box<(Variable, Variable)>),
     Array(Box<Variable>, Expr),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Args {
     pub items: Vec<Expr>
 }
@@ -122,6 +122,18 @@ impl Variable {
         }
 
         Ok(())
+    }
+
+    pub fn get_first_id(&self) -> Lexeme {
+        match self {
+            Variable::Array(n, _) => {
+                n.get_first_id()
+            }
+            Variable::Id(id) => id.clone(),
+            Variable::StructField(s) => {
+                s.0.get_first_id()
+            }
+        }
     }
 }
 

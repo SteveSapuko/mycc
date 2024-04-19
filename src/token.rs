@@ -22,12 +22,6 @@ pub enum Token {
 pub const ID_TOKEN: Token = Token::Id(String::new());
 pub const LIT_TOKEN: Token = Token::Lit(String::new());
 
-pub const BLANK_LEXEME: Lexeme = Lexeme {
-    tok: Token::Arrow,
-    line: 0,
-    col: 0
-};
-
 #[derive(Debug, Clone, PartialEq)]
 pub struct Lexeme {
     pub tok: Token,

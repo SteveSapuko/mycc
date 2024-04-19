@@ -1,0 +1,15 @@
+struct Three {
+    z: [u8; 256]
+}
+
+struct Two {
+    y: Three
+}
+
+struct One {
+    x: Two
+}
+
+let foo: One;
+
+foo.x.y.z[256];
