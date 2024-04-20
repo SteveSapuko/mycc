@@ -21,5 +21,7 @@ pub enum SemanticErr {
     CantReturn(Lexeme),
     CantBreak(Lexeme),
     EnumDuplicateVariants(Lexeme),
-    RecursiveStruct(Lexeme),
+    RecursiveStruct(String),
+    CannotCast(Lexeme),
+    CannotOp(Lexeme),
 }

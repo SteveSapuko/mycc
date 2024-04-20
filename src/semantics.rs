@@ -128,7 +128,7 @@ fn define_scope(ss: &mut ScopeStack, ast: &Vec<Stmt>) -> Result<(), SemanticErr>
                 MaybeType::Unresolved(declr) => {
                     if let TypeDeclr::Basic(id) = declr {
                         if id.data() == s.name.data() {
-                            return Err(SemanticErr::RecursiveStruct(s.name.clone()))
+                            return Err(SemanticErr::RecursiveStruct(s.name.data()))
                         }
                     }
                     
@@ -141,8 +141,59 @@ fn define_scope(ss: &mut ScopeStack, ast: &Vec<Stmt>) -> Result<(), SemanticErr>
         finished_structs.push(StructTemplate { name: s.name.data(), fields })
     }
 
+
+
+    for s in &finished_structs {
+        ss.declare_custom_type(CustomType::CustomStruct(s.clone()));
+    }
+
+    //check for infinite struct recursion
     for s in finished_structs {
-        ss.declare_custom_type(CustomType::CustomStruct(s));
+        match s.check_recursive(ss, 0) {
+            Ok(_) => {},
+            Err(name) => {
+                return Err(SemanticErr::RecursiveStruct(name))
+            }
+        }
+    }
+
+    //define functions
+    for s in ast {
+        if let Stmt::FnDeclr(name, params, ret_type, body) = s {
+            let name_as_string = name.data();
+            if ss.used_ids.contains(&name_as_string) {
+                return Err(SemanticErr::UsedId(name.clone()))
+            }
+
+
+            let mut param_names: Vec<String> = vec![];
+            let mut param_types: Vec<ValueType> = vec![];
+
+            for p in params.params.iter() {
+                let p_type = match ValueType::from_declr(&p.1, ss) {
+                    Ok(t) => t,
+                    Err(l) => return Err(SemanticErr::UnknownType(l))
+                };
+
+                if param_names.contains(&p.0.data()) {
+                    return Err(SemanticErr::FnDuplicateParams(p.0.clone()))
+                }
+
+                param_names.push(p.0.data());
+                param_types.push(p_type);
+            }
+
+            let checked_ret_type = match ValueType::from_declr(ret_type, ss) {
+                Ok(t) => t,
+                Err(l) => return Err(SemanticErr::UnknownType(l))
+            };
+
+            ss.declare_fn(name_as_string, param_types.clone(), checked_ret_type.clone());
+
+            let checked_params: Vec<(String, ValueType)> = param_names.into_iter().zip(param_types.into_iter()).collect();
+            
+            body.check_fn_body_semantics(checked_params, checked_ret_type, ss)?;
+        }
     }
 
     Ok(())
@@ -176,6 +227,10 @@ impl ScopeStack {
     }
 
     pub fn get_var_type_from_name(&self, target_name: String) -> Option<ValueType> {
+        if target_name == "void" {
+            return Some(ValueType::Void)
+        }
+        
         for var in self.stack.iter().rev() {
             if let ScopeStackOp::DeclrVar(var_name, var_type) = var {
                 if *var_name == target_name {

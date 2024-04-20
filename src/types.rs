@@ -1,8 +1,6 @@
-use std::collections::HashMap;
-
 use crate::stmt::TypeDeclr;
-use crate::expr::NumLiteral;
-use crate::semantics::{semantic_err::*, ScopeStack};
+use crate::expr::*;
+use crate::semantics::ScopeStack;
 use crate::token::Lexeme;
 
 
@@ -60,6 +58,24 @@ impl StructTemplate {
 pub struct StructTemplate {
     pub name: String,
     pub fields: Vec<(String, ValueType)>
+}
+
+impl StructTemplate {
+    pub fn check_recursive(&self, ss: &ScopeStack, iteration: u8) -> Result<(), String> {
+        if iteration == 100 {
+            return Err(self.name.clone())
+        }
+        
+        for f in self.fields.iter() {
+            //println!("field: {} type: {:#?}", f.0, f.1);
+            if let ValueType::CustomStruct(s) = &f.1 {
+                let child_struct = ss.get_custom_struct(s.clone()).expect("should have been caught earlier");
+                child_struct.check_recursive(ss, iteration + 1)?;
+            }
+        }
+
+        Ok(())
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -167,7 +183,7 @@ impl ValueType {
         match declr {
             TypeDeclr::Basic(id) => ValueType::CustomStruct(id.data()),
 
-            TypeDeclr::Pointer(p) => ValueType::from_declr_new_struct(p),
+            TypeDeclr::Pointer(p) => ValueType::Pointer(Box::new(ValueType::from_declr_new_struct(p))),
 
             TypeDeclr::Array(item_type, size) => {
                 ValueType::Array(Box::new(ValueType::from_declr_new_struct(item_type)), *size)

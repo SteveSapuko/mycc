@@ -25,13 +25,32 @@ impl Expr {
             }
 
             //TODO make sure only works on certain types
-            Expr::Cast(value, _, cast_to_type_declr) => {
+            Expr::Cast(value, op, cast_to_type_declr) => {
                 let value_type = value.eval_type(ss)?;
                 
+                if match value_type {
+                    ValueType::Array(_, _) => true,
+                    ValueType::CustomStruct(_) => true,
+                    ValueType::Void => true,
+                    _ => false,
+                } {
+                    return Err(SemanticErr::CannotCast(op.clone()))
+                }
+
+
                 let to_type = match ValueType::from_declr(cast_to_type_declr, ss) {
                     Ok(t) => t,
                     Err(l) => return Err(SemanticErr::UnknownType(l))
                 };
+
+                if match to_type {
+                    ValueType::Array(_, _) => true,
+                    ValueType::CustomStruct(_) => true,
+                    ValueType::Void => true,
+                    _ => false,
+                } {
+                    return Err(SemanticErr::CannotCast(op.clone()))
+                }
 
                 return Ok(to_type)
             }
@@ -59,6 +78,16 @@ impl Expr {
             //TODO make sure only works on certain types
             Expr::Unary(op, right) => {
                 let right_type = right.eval_type(ss)?;
+                
+                if match right_type {
+                    ValueType::Array(_, _) => true,
+                    ValueType::CustomStruct(_) => true,
+                    ValueType::CustomEnum(_) => true,
+                    ValueType::Void => true,
+                    _ => false,
+                } {
+                    return Err(SemanticErr::CannotOp(op.clone()))
+                }
 
                 return Ok(right_type)
             }
@@ -147,6 +176,26 @@ impl BinaryExpr {
             return Err(SemanticErr::WrongType(left_type, right_type, self.operator.clone()))
         }
 
+        if match right_type {
+            ValueType::Array(_, _) => true,
+            ValueType::CustomStruct(_) => true,
+            ValueType::CustomEnum(_) => true,
+            ValueType::Void => true,
+            _ => false,
+        } {
+            return Err(SemanticErr::CannotOp(self.operator.clone()))
+        }
+
+        if match left_type {
+            ValueType::Array(_, _) => true,
+            ValueType::CustomStruct(_) => true,
+            ValueType::CustomEnum(_) => true,
+            ValueType::Void => true,
+            _ => false,
+        } {
+            return Err(SemanticErr::CannotOp(self.operator.clone()))
+        }
+
         return Ok(left_type)
     }
 }
@@ -177,17 +226,27 @@ impl Variable {
             }
 
             Variable::Array(array_head, index) => {
-                
                 let index_type = index.eval_type(ss)?;
-                if !matches!(index_type, ValueType::U16) {
-                    return Err(SemanticErr::WrongType(ValueType::U16, index_type, index.get_first_lexeme()))
+                let array_type = array_head.eval_type(ss, parent_struct_type)?;
+
+                if let ValueType::Pointer(points_to) = &array_type {
+                    match index_type {
+                        ValueType::I16 => {},
+                        ValueType::U16 => {},
+                        _ => return Err(SemanticErr::WrongType(ValueType::U16, index_type, index.get_first_lexeme()))
+                    }
+
+                    return Ok(*points_to.clone())
                 }
 
-                
-                let array_type = array_head.eval_type(ss, parent_struct_type)?;
                 if let ValueType::Array(item_type, _) = array_type {
+                    if !matches!(index_type, ValueType::U16) {
+                        return Err(SemanticErr::WrongType(ValueType::U16, index_type, index.get_first_lexeme()))
+                    }
+
                     return Ok(*item_type)
                 }
+                
                 return Err(SemanticErr::NotAnArray(array_head.get_first_lexeme()))
             }
 

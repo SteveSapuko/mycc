@@ -39,45 +39,9 @@ impl Stmt {
                 }
             }
 
-            Stmt::StructDeclr(name, fields) => {
-                
-            }
+            Stmt::StructDeclr(_, _) => {}
 
-            Stmt::FnDeclr(name, params, ret_type, body) => {
-                let name_as_string = name.data();
-                if ss.used_ids.contains(&name_as_string) {
-                    return Err(SemanticErr::UsedId(name.clone()))
-                }
-
-
-                let mut param_names: Vec<String> = vec![];
-                let mut param_types: Vec<ValueType> = vec![];
-
-                for p in params.params.iter() {
-                    let p_type = match ValueType::from_declr(&p.1, ss) {
-                        Ok(t) => t,
-                        Err(l) => return Err(SemanticErr::UnknownType(l))
-                    };
-
-                    if param_names.contains(&p.0.data()) {
-                        return Err(SemanticErr::FnDuplicateParams(p.0.clone()))
-                    }
-
-                    param_names.push(p.0.data());
-                    param_types.push(p_type);
-                }
-
-                let checked_ret_type = match ValueType::from_declr(ret_type, ss) {
-                    Ok(t) => t,
-                    Err(l) => return Err(SemanticErr::UnknownType(l))
-                };
-
-                ss.declare_fn(name_as_string, param_types.clone(), checked_ret_type.clone());
-
-                let checked_params: Vec<(String, ValueType)> = param_names.into_iter().zip(param_types.into_iter()).collect();
-                
-                body.check_fn_body_semantics(checked_params, checked_ret_type, ss)?;
-            }
+            Stmt::FnDeclr(_, _, _, _) => {}
 
             Stmt::ReturnStmt(op, value) => {
                 let ret_type = match ss.get_nearest_ret_type() {
@@ -126,9 +90,7 @@ impl Stmt {
                 body.check_breakable_semantics(ss)?;
             }
 
-            Stmt::EnumDeclr(_, _) => {
-                
-            }
+            Stmt::EnumDeclr(_, _) => {}
         }
         
         Ok(())
