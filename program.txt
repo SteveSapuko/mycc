@@ -1,15 +1,16 @@
-struct Three {
-    z: [u8; 256]
+struct one {
+    x: two
 }
 
-struct Two {
-    y: Three
+struct two {
+    y: three
 }
 
-struct One {
-    x: Two
+
+struct three {
+    z: @one
 }
 
-let foo: One;
 
-foo.x.y.z[256];
+
+let boolbool: one;

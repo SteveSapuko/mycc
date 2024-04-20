@@ -35,7 +35,8 @@ impl Parser {
         let mut left = self.parse_term()?;
 
         while self.match_tok(Token::Cond(">".to_string())) || self.match_tok(Token::Cond("<".to_string())) ||
-        self.match_tok(Token::Cond(">=".to_string())) || self.match_tok(Token::Cond("<=".to_string())) {
+        self.match_tok(Token::Cond(">=".to_string())) || self.match_tok(Token::Cond("<=".to_string()))  ||
+        self.match_tok(Token::Cond("&&".to_string())) || self.match_tok(Token::Cond("||".to_string())) {
             let operator = self.previous();
             let right = self.parse_term()?;
 
@@ -49,7 +50,9 @@ impl Parser {
     fn parse_term(&mut self) -> Result<Expr, &'static str> {
         let mut left = self.parse_shift()?;
 
-        while self.match_tok(Token::Op("+".to_string())) || self.match_tok(Token::Op("-".to_string())) {
+        while self.match_tok(Token::Op("+".to_string())) || self.match_tok(Token::Op("-".to_string())) ||
+        self.match_tok(Token::Op("&".to_string())) || self.match_tok(Token::Op("|".to_string())) ||
+        self.match_tok(Token::Op("~|".to_string())) {
             let operator = self.previous();
             let right = self.parse_shift()?;
 
@@ -91,7 +94,7 @@ impl Parser {
     fn parse_cast(&mut self) -> Result<Expr, &'static str> {
         let left = self.parse_fn_call()?;
 
-        if self.match_tok(Token::Key("as".to_string())) {
+        if self.match_tok(Token::Op("as".to_string())) {
             let operator = self.previous();
             let to_type = self.parse_type_declr()?;
 
@@ -124,8 +127,9 @@ impl Parser {
     fn parse_primary(&mut self) -> Result<Expr, &'static str> {
         //NumLiteral
         if matches!(self.current().tok, Token::Lit(_)) {
+            let lexeme = self.current();
             let num_literal = self.parse_num_literal()?;
-            return Ok(Expr::Primary(Box::new(PrimaryExpr::NumLiteral(num_literal))))
+            return Ok(Expr::Primary(Box::new(PrimaryExpr::NumLiteral(num_literal, lexeme))))
 
         }
 
@@ -243,8 +247,6 @@ impl Parser {
                 result = Variable::Array(Box::new(result), index);
             }
         }
-
-        println!("\n---\n{:#?}\n---", result);
 
         return Ok(result)
     }

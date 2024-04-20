@@ -84,7 +84,7 @@ impl Display for Expr {
             Self::Primary(t) => {
                 match &**t {
                     PrimaryExpr::Grouping(t) => write!(f, "{}", t),
-                    PrimaryExpr::NumLiteral(t) => write!(f, "{}", t),
+                    PrimaryExpr::NumLiteral(t, _) => write!(f, "{}", t),
                     PrimaryExpr::EnumVariant(t, t2) => write!(f, "({}::{})", t, t2),
                     PrimaryExpr::Variable(t) => write!(f, "{}", t),
                     PrimaryExpr::Ref(t, t2) => write!(f, "Ref {} on {}", t, t2),

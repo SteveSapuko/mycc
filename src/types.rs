@@ -1,6 +1,8 @@
+use std::collections::HashMap;
+
 use crate::stmt::TypeDeclr;
 use crate::expr::NumLiteral;
-use crate::semantics::semantic_err::*;
+use crate::semantics::{semantic_err::*, ScopeStack};
 use crate::token::Lexeme;
 
 
@@ -36,31 +38,11 @@ pub enum ValueType {
     Void,
     Pointer(Box<ValueType>),
     Array(Box<ValueType>, u16),
-    CustomType(CustomType),
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub enum CustomType {
-    CustomStruct(CustomStruct),
+    CustomStruct(String),
     CustomEnum(CustomEnum),
 }
 
-
-impl CustomType {
-    pub fn name(&self) -> String {
-        match self {
-            CustomType::CustomStruct(s) => {
-                s.name.clone()
-            }
-
-            CustomType::CustomEnum(e) => {
-                e.name.clone()
-            }
-        }
-    }
-}
-
-impl CustomStruct {
+impl StructTemplate {
     pub fn get_field_type(&self, field: &Lexeme) -> Option<ValueType> {
         let access_name = field.data();
         
@@ -74,23 +56,34 @@ impl CustomStruct {
     }
 }
 
-impl CustomEnum {
-    pub fn eval_type(&self, variant: &Lexeme) -> Result<ValueType, SemanticErr> {
-        let variant_name = variant.data();
-
-        if self.variants.contains(&variant_name) {
-            return Ok(ValueType::CustomType(CustomType::CustomEnum(self.clone())))
-        }
-
-        Err(SemanticErr::NoEnumVariant(self.clone(), variant.clone()))
-    }
-}
-
 #[derive(Clone, Debug, PartialEq)]
-pub struct CustomStruct {
+pub struct StructTemplate {
     pub name: String,
     pub fields: Vec<(String, ValueType)>
 }
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct UnfinishedStruct {
+    pub name: Lexeme,
+    pub fields: Vec<(Lexeme, MaybeType)>
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum CustomType {
+    CustomStruct(StructTemplate),
+    CustomEnum(CustomEnum),
+}
+
+impl CustomType {
+    pub fn name(&self) -> String {
+        match self {
+            Self::CustomEnum(t) => t.name.clone(),
+
+            Self::CustomStruct(t) => t.name.clone()
+        }
+    }
+}
+
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct CustomEnum {
@@ -98,8 +91,23 @@ pub struct CustomEnum {
     pub variants: Vec<String>
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub enum MaybeType {
+    Resolved(ValueType),
+    Unresolved(TypeDeclr),
+}
+
+impl MaybeType {
+    pub fn unwrap(&self) -> ValueType {
+        match self {
+            Self::Resolved(t) => t.clone(),
+            Self::Unresolved(_) => panic!("Unwrapped Unresolved Type"),
+        }
+    }
+}
+
 impl ValueType {
-    pub fn from_declr(declr: &TypeDeclr, defined_types: &Vec<CustomType>) -> Result<ValueType, Lexeme> {
+    pub fn from_declr(declr: &TypeDeclr, ss: &mut ScopeStack) -> Result<ValueType, Lexeme> {
         match declr {
             TypeDeclr::Basic(lex) => {
                 let type_text = lex.data();
@@ -117,12 +125,26 @@ impl ValueType {
                     "u64" => return Ok(ValueType::U64),
                     "i64" => return Ok(ValueType::I64),
 
+                    "void" => return Ok(ValueType::Void),
+
                     _ => {}
                 }
 
-                for custom_type in defined_types {
-                    if type_text == custom_type.name() {
-                        return Ok(ValueType::CustomType(custom_type.clone()))
+                for t in ss.defined_types() {
+                    match &t {
+                        CustomType::CustomEnum(e) => {
+                            if lex.data() == e.name {
+                                return Ok(ValueType::CustomEnum(e.clone()))
+                            }
+                        }
+
+                        CustomType::CustomStruct(s) => {
+                            if lex.data() == s.name {
+                                return Ok(ValueType::CustomStruct(s.name.clone()))
+                            }
+                        }
+
+                        
                     }
                 }
 
@@ -130,13 +152,25 @@ impl ValueType {
             }
 
             TypeDeclr::Pointer(p) => {
-                let points_to = ValueType::from_declr(p, defined_types)?;
+                let points_to = ValueType::from_declr(p, ss)?;
                 return Ok(ValueType::Pointer(Box::new(points_to)))
             }
 
             TypeDeclr::Array(item_t, size) => {
-                let item_type = ValueType::from_declr(item_t, defined_types)?;
+                let item_type = ValueType::from_declr(item_t, ss)?;
                 return Ok(ValueType::Array(Box::new(item_type), *size))
+            }
+        }
+    }
+
+    pub fn from_declr_new_struct(declr: &TypeDeclr) -> ValueType {
+        match declr {
+            TypeDeclr::Basic(id) => ValueType::CustomStruct(id.data()),
+
+            TypeDeclr::Pointer(p) => ValueType::from_declr_new_struct(p),
+
+            TypeDeclr::Array(item_type, size) => {
+                ValueType::Array(Box::new(ValueType::from_declr_new_struct(item_type)), *size)
             }
         }
     }

@@ -19,7 +19,7 @@ pub enum Stmt {
     Block(Vec<Stmt>),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum TypeDeclr {
     Basic(Lexeme),
     Pointer(Box<TypeDeclr>),
@@ -34,6 +34,25 @@ impl TypeDeclr {
             TypeDeclr::Array(item, _) => item.get_id(),
 
             TypeDeclr::Pointer(p_type) => p_type.get_id()
+        }
+    }
+
+    pub fn check_resolveable_by_type_name(&self, target: String) -> bool {
+        match self {
+            TypeDeclr::Basic(id) => {
+                if id.data() == target {
+                    return true
+                }
+                false
+            }
+
+            TypeDeclr::Pointer(p) => {
+                p.check_resolveable_by_type_name(target)
+            }
+
+            TypeDeclr::Array(item_t, _) => {
+                item_t.check_resolveable_by_type_name(target)
+            }
         }
     }
 }

@@ -19,7 +19,7 @@ pub enum Expr {
 #[derive(Debug, Clone)]
 pub enum PrimaryExpr {
     Grouping(Expr),
-    NumLiteral(NumLiteral),
+    NumLiteral(NumLiteral, Lexeme),
     Variable(Variable),
     EnumVariant(Lexeme, Lexeme),
     Ref(Lexeme, Variable),
@@ -124,14 +124,14 @@ impl Variable {
         Ok(())
     }
 
-    pub fn get_first_id(&self) -> Lexeme {
+    pub fn get_first_lexeme(&self) -> Lexeme {
         match self {
             Variable::Array(n, _) => {
-                n.get_first_id()
+                n.get_first_lexeme()
             }
             Variable::Id(id) => id.clone(),
             Variable::StructField(s) => {
-                s.0.get_first_id()
+                s.0.get_first_lexeme()
             }
         }
     }
@@ -143,10 +143,10 @@ impl Expr {
             Expr::Unary(operator, e) => {
                 if operator.data() == "-" {
                     if let Expr::Primary(p) = &mut **e {
-                        if let PrimaryExpr::NumLiteral(n) = &**p {
+                        if let PrimaryExpr::NumLiteral(n, l) = &**p {
                             match n.negate() {
                                 Ok(new) => {
-                                    *self = Expr::Primary(Box::new(PrimaryExpr::NumLiteral(new)))   
+                                    *self = Expr::Primary(Box::new(PrimaryExpr::NumLiteral(new, l.clone())))   
                                 }
                                 Err(_) => return Err(operator.clone())
                             }
@@ -194,5 +194,41 @@ impl Expr {
         }
         
         Ok(())
+    }
+
+    pub fn get_first_lexeme(&self) -> Lexeme {
+        match self {
+            Expr::Assign(a) => {
+                a.0.get_first_lexeme()
+            }
+
+            Expr::Cast(v, _, _) => v.get_first_lexeme(),
+
+            Expr::Comparison(binary) => binary.left.get_first_lexeme(),
+
+            Expr::Equality(binary) => binary.left.get_first_lexeme(),
+
+            Expr::Shift(v, _, _) => v.get_first_lexeme(),
+
+            Expr::Term(b) => b.left.get_first_lexeme(),
+
+            Expr::Unary(left, _) => left.clone(),
+
+            Expr::FnCall(name, _) => name.clone(),
+
+            Expr::Primary(p) => {
+                match &**p {
+                    PrimaryExpr::EnumVariant(n, _) => n.clone(),
+
+                    PrimaryExpr::Grouping(g) => g.get_first_lexeme(),
+
+                    PrimaryExpr::NumLiteral(_, l) => l.clone(),
+
+                    PrimaryExpr::Ref(op, _) => op.clone(),
+
+                    PrimaryExpr::Variable(v) => v.get_first_lexeme(),
+                }
+            }
+        }
     }
 }

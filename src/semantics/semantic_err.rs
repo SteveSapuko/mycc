@@ -1,8 +1,8 @@
-use super::{CustomEnum, CustomStruct, CustomType, Lexeme, TypeDeclr, ValueType};
+use super::{CustomEnum, StructTemplate, CustomType, Lexeme, ValueType};
 
 #[derive(Debug)]
 pub enum SemanticErr {
-    NoStructField(CustomStruct, Lexeme),
+    NoStructField(StructTemplate, Lexeme),
     NoEnumVariant(CustomEnum, Lexeme),
     StructDuplicateFields(Lexeme, Lexeme), //Struct Name, Field Name
     WrongAccess(CustomType, Lexeme),
@@ -10,7 +10,16 @@ pub enum SemanticErr {
     NotAStruct(Lexeme),
     NotAnArray(Lexeme),
     UndeclaredVar(Lexeme),
-    WrongType(ValueType, ValueType), //(SHOULD, IS, LOCATION)
+    WrongType(ValueType, ValueType, Lexeme), //(SHOULD, IS, LOCATION)
     UsedId(Lexeme),
-    AccessError(Lexeme),
+    CantDeref(Lexeme),
+    NotAVar(Lexeme),
+    ShiftAmountErr(Lexeme),
+    UndeclaredFn(Lexeme),
+    FnArityErr(Lexeme),
+    FnDuplicateParams(Lexeme),
+    CantReturn(Lexeme),
+    CantBreak(Lexeme),
+    EnumDuplicateVariants(Lexeme),
+    RecursiveStruct(Lexeme),
 }
