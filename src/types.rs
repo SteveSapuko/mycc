@@ -190,4 +190,59 @@ impl ValueType {
             }
         }
     }
+
+    pub fn size(&self, ss: &ScopeStack) -> u16 {
+        match self {
+            Self::U8 => 1,
+            Self::I8 => 1,
+
+            Self::U16 => 2,
+            Self::I16 => 2,
+
+            Self::U32 => 4,
+            Self::I32 => 4,
+
+            Self::U64 => 8,
+            Self::I64 => 8,
+
+            Self::Pointer(_) => 2,
+
+            Self::Array(item_type, size) => {
+                item_type.size(ss) * *size
+            }
+
+            Self::Void => 0,
+
+            Self::CustomEnum(_) => 1,
+
+            Self::CustomStruct(struct_name) => {
+                let custom_struct = ss.get_custom_struct(struct_name.clone()).expect("should have been caught");
+                let mut sum: u16 = 0;
+
+                for f in custom_struct.fields {
+                    sum += f.1.size(ss);
+                }
+
+                sum
+            }
+        }
+    }
+}
+
+impl NumLiteral {
+    pub fn size(&self) -> u16 {
+        match self {
+            Self::U8(_) => 1,
+            Self::I8(_) => 1,
+
+            Self::U16(_) => 2,
+            Self::I16(_) => 2,
+
+            Self::U32(_) => 4,
+            Self::I32(_) => 4,
+
+            Self::U64(_) => 8,
+            Self::I64(_) => 8,
+        }
+    }
 }

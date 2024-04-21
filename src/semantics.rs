@@ -33,7 +33,7 @@ pub fn check_semantics(ast: &Vec<Stmt>) -> Result<(), SemanticErr> {
     Ok(())
 }
 
-fn define_scope(ss: &mut ScopeStack, ast: &Vec<Stmt>) -> Result<(), SemanticErr> {
+pub fn define_scope(ss: &mut ScopeStack, ast: &Vec<Stmt>) -> Result<(), SemanticErr> {
     //define enums first
     for s in ast {
         if let Stmt::EnumDeclr(name, variants) = s {

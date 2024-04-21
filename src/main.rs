@@ -6,6 +6,7 @@ mod stmt;
 mod display;
 mod semantics;
 mod types;
+mod cgen;
 
 use lexer::*;
 use parser::*;

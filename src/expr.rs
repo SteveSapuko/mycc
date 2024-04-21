@@ -135,6 +135,16 @@ impl Variable {
             }
         }
     }
+
+    pub fn has_no_arrays(&self) -> bool {
+        match self {
+            Self::Id(_) => true,
+            Self::StructField(s) => {
+                s.0.has_no_arrays() && s.1.has_no_arrays()
+            }
+            Self::Array(_, _) => false
+        }
+    }
 }
 
 impl Expr {
