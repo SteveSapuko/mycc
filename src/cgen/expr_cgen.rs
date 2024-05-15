@@ -4,8 +4,14 @@ use crate::expr::*;
 
 
 impl Expr {
+    ///Value which the Expr eventaully evaluates to
+    ///is placed on the top of the stack
     pub fn cgen(&self, cg: &mut CodeGenerator) {
         match self {
+            Expr::Term(b) => {
+                
+            }
+            
             Expr::Primary(p) => {
                 match &**p {
                     PrimaryExpr::Grouping(e) => e.cgen(cg),
@@ -19,16 +25,8 @@ impl Expr {
                     }
 
                     PrimaryExpr::Variable(v) => {
-                        if v.has_no_arrays() {
-                            match v {
-                                Variable::Id(var_name) => {
-                                    let var = cg.get_var(var_name.data());
-                                    
-
-                                }
-
-                                _ => todo!()
-                            }
+                        if v.location_known_at_compile() {
+                            
                         } else {
 
                         }

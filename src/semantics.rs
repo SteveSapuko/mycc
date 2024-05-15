@@ -98,10 +98,19 @@ pub fn define_scope(ss: &mut ScopeStack, ast: &Vec<Stmt>) -> Result<(), Semantic
             }
             else {
                 let field_names_as_strings: Vec<String> = field_names.iter().map(|x| x.data()).collect();
-                let struct_fields: Vec<(String, ValueType)> =
+                let mut struct_fields: Vec<(String, ValueType)> =
                 field_names_as_strings.into_iter().zip(field_types.into_iter().map(|x| x.unwrap())).collect();
 
-                ss.declare_custom_type(CustomType::CustomStruct(StructTemplate { name: name.data(), fields: struct_fields }))
+                let mut struct_fields_with_offsets: Vec<(String, ValueType, u16)> = vec![];
+                let mut struct_size_sum: u16 = 0;
+                for field in struct_fields {
+                    let field_size = field.1.size(ss);
+                    
+                    struct_fields_with_offsets.push((field.0, field.1, struct_size_sum));
+                    struct_size_sum += field_size;
+                }
+
+                ss.declare_custom_type(CustomType::CustomStruct(StructTemplate { name: name.data(), fields: struct_fields_with_offsets }))
             }
         }
     }
@@ -120,10 +129,16 @@ pub fn define_scope(ss: &mut ScopeStack, ast: &Vec<Stmt>) -> Result<(), Semantic
     let mut finished_structs: Vec<StructTemplate> = vec![];
 
     for s in unfinished_structs.iter() {
-        let mut fields: Vec<(String, ValueType)> = vec![];
+        let mut fields: Vec<(String, ValueType, u16)> = vec![];
+        let mut struct_size_sum: u16 = 0;
+
         for field in s.fields.iter() {
             match &field.1 {
-                MaybeType::Resolved(t) => fields.push((field.0.data(), t.clone())),
+                MaybeType::Resolved(t) => {
+                    let field_size = t.size(ss);
+                    fields.push((field.0.data(), t.clone(), struct_size_sum));
+                    struct_size_sum += field_size;
+                },
                 
                 MaybeType::Unresolved(declr) => {
                     if let TypeDeclr::Basic(id) = declr {
@@ -133,7 +148,10 @@ pub fn define_scope(ss: &mut ScopeStack, ast: &Vec<Stmt>) -> Result<(), Semantic
                     }
                     
                     let field_type = ValueType::from_declr_new_struct(&declr);
-                    fields.push((field.0.data(), field_type));
+                    let field_size = field_type.size(ss);
+
+                    fields.push((field.0.data(), field_type, struct_size_sum));
+                    struct_size_sum += field_size;
                 }
             }
         }
@@ -340,4 +358,28 @@ pub struct FnTemplate {
     pub name: String,
     pub parameters: Vec<ValueType>,
     pub ret_type: ValueType,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct StructTemplate {
+    pub name: String,
+    pub fields: Vec<(String, ValueType, u16)> //u16 is in bytes from first byte of struct
+}
+
+impl StructTemplate {
+    pub fn check_recursive(&self, ss: &ScopeStack, iteration: u8) -> Result<(), String> {
+        if iteration == 100 {
+            return Err(self.name.clone())
+        }
+        
+        for f in self.fields.iter() {
+            //println!("field: {} type: {:#?}", f.0, f.1);
+            if let ValueType::CustomStruct(s) = &f.1 {
+                let child_struct = ss.get_custom_struct(s.clone()).expect("should have been caught earlier");
+                child_struct.check_recursive(ss, iteration + 1)?;
+            }
+        }
+
+        Ok(())
+    }
 }

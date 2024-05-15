@@ -1,6 +1,6 @@
 use crate::stmt::TypeDeclr;
 use crate::expr::*;
-use crate::semantics::ScopeStack;
+use crate::semantics::*;
 use crate::token::Lexeme;
 
 
@@ -52,31 +52,21 @@ impl StructTemplate {
 
         None
     }
-}
 
-#[derive(Clone, Debug, PartialEq)]
-pub struct StructTemplate {
-    pub name: String,
-    pub fields: Vec<(String, ValueType)>
-}
-
-impl StructTemplate {
-    pub fn check_recursive(&self, ss: &ScopeStack, iteration: u8) -> Result<(), String> {
-        if iteration == 100 {
-            return Err(self.name.clone())
-        }
-        
-        for f in self.fields.iter() {
-            //println!("field: {} type: {:#?}", f.0, f.1);
-            if let ValueType::CustomStruct(s) = &f.1 {
-                let child_struct = ss.get_custom_struct(s.clone()).expect("should have been caught earlier");
-                child_struct.check_recursive(ss, iteration + 1)?;
+    ///Returns offset from head, as well as type
+    pub fn get_field(&self, field: String) -> (ValueType, u16) {
+        for f in &self.fields {
+            if f.0 == field {
+                return (f.1.clone(), f.2)
             }
         }
 
-        Ok(())
+        //this function is used only if we know the input code to be valid
+        unreachable!()
     }
 }
+
+
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct UnfinishedStruct {
