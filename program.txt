@@ -1,1 +1,4 @@
 let x: u8 = 1;
+let y: u16 = 300;
+
+let z: u16 = x + y as u8;

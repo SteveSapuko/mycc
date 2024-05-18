@@ -148,9 +148,9 @@ impl ScopeStack {
         self.defined_types.push(t);
     }
 
-    pub fn declare_fn(&mut self, name: String, parameters: Vec<ValueType>, ret_type: ValueType) {
-        self.global_used_ids.push(name.clone());
-        self.defined_functions.push(FnTemplate { name, parameters, ret_type });
+    pub fn declare_fn(&mut self, template: FnTemplate) {
+        self.global_used_ids.push(template.name.clone());
+        self.defined_functions.push(template);
     }
 
     pub fn enter_breakable(&mut self) {

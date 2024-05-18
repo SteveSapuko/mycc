@@ -38,7 +38,7 @@ impl TypedExpr {
     pub fn is_assignable(&self) -> bool {
         match self {
             TypedExpr::Primary(_, primary_expr) => {
-                match **primary_expr {
+                match &**primary_expr {
                     TypedPrimaryExpr::Variable(_) => true,
                     TypedPrimaryExpr::Ref(_, ref_op, _) => {
                         if ref_op.as_str() == "*" {
@@ -126,8 +126,7 @@ pub struct TypedArgs {
 pub enum TypedStmt {
     VarDeclr(String, ValueType, Option<TypedExpr>),
     FnDeclr(FnTemplate, Box<TypedStmt>),
-    StructDeclr(StructTemplate),
-    EnumDeclr(EnumTemplate),
+    CustomTypeDeclr,
 
     ExprStmt(TypedExpr),
     LoopStmt(Box<TypedStmt>),
@@ -136,4 +135,9 @@ pub enum TypedStmt {
     BreakStmt,
     ReturnStmt(TypedExpr),
     Block(Vec<TypedStmt>),
+}
+
+#[derive(Debug, Clone)]
+pub struct TypedParameters {
+    pub items: Vec<(String, ValueType)>
 }

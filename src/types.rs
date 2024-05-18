@@ -3,6 +3,8 @@ use crate::expr::*;
 use crate::semantics::*;
 use crate::token::Lexeme;
 
+use self::semantic_err::SemanticErr;
+
 
 impl NumLiteral {
     pub fn get_type(&self) -> ValueType {
@@ -106,7 +108,7 @@ impl MaybeType {
 }
 
 impl ValueType {
-    pub fn from_declr(declr: &TypeDeclr, defined_types: &Vec<CustomType>) -> Result<ValueType, Lexeme> {
+    pub fn from_declr(declr: &TypeDeclr, defined_types: &Vec<CustomType>) -> Result<ValueType, SemanticErr> {
         match declr {
             TypeDeclr::Basic(lex) => {
                 let type_text = lex.data();
@@ -147,7 +149,7 @@ impl ValueType {
                     }
                 }
 
-                return Err(lex.clone())
+                return Err(SemanticErr::UnknownType(lex.clone()))
             }
 
             TypeDeclr::Pointer(p) => {
@@ -162,15 +164,35 @@ impl ValueType {
         }
     }
 
-    pub fn from_declr_new_struct(declr: &TypeDeclr) -> ValueType {
+    ///being_defined is for structs that may not be known/legal yet,
+    ///but we want to assume they're valid
+    pub fn from_declr_new_struct(declr: &TypeDeclr, defined_types: &Vec<CustomType>, being_defined: &Vec<String>) -> Result<ValueType, SemanticErr> {
         match declr {
-            TypeDeclr::Basic(id) => ValueType::CustomStruct(id.data()),
+            TypeDeclr::Basic(id) => {
+                if let Ok(t) = ValueType::from_declr(declr, defined_types) {
+                    return Ok(t)
+                }
+                
+                if !being_defined.contains(&id.data()) {
+                    return Err(SemanticErr::UnknownType(id.clone()))
+                }
 
-            TypeDeclr::Pointer(p) => ValueType::Pointer(Box::new(ValueType::from_declr_new_struct(p))),
+                Ok(
+                    ValueType::CustomStruct(id.data())
+                )
+            },
 
-            TypeDeclr::Array(item_type, size) => {
-                ValueType::Array(Box::new(ValueType::from_declr_new_struct(item_type)), *size)
-            }
+            TypeDeclr::Pointer(p) => Ok(
+                ValueType::Pointer(
+                    Box::new(ValueType::from_declr_new_struct(p, defined_types, being_defined)?)
+                )
+            ),
+
+            TypeDeclr::Array(item_type, size) => Ok(
+                ValueType::Array(
+                    Box::new(ValueType::from_declr_new_struct(item_type, defined_types, being_defined)?),
+                    *size)
+            )
         }
     }
 

@@ -4,7 +4,6 @@ use super::{EnumTemplate, StructTemplate, CustomType, Lexeme, ValueType};
 pub enum SemanticErr {
     NoStructField(StructTemplate, Lexeme),
     NoEnumVariant(EnumTemplate, Lexeme),
-    StructDuplicateFields(Lexeme, Lexeme), //Struct Name, Field Name
     WrongAccess(CustomType, Lexeme),
     UnknownType(Lexeme),
     NotAStruct(Lexeme),
@@ -17,7 +16,7 @@ pub enum SemanticErr {
     ShiftAmountErr(Lexeme),
     UndeclaredFn(Lexeme),
     FnArityErr(Lexeme),
-    FnDuplicateParams(Lexeme),
+    DuplicateParams(Lexeme),
     CantReturn(Lexeme),
     CantBreak(Lexeme),
     EnumDuplicateVariants(Lexeme),

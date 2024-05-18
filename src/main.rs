@@ -11,7 +11,7 @@ mod typed_ast;
 
 use lexer::*;
 use parser::*;
-//use semantics::check_semantics;
+use semantics::generate_typed_ast;
 
 
 use std::process::exit;
@@ -55,6 +55,18 @@ fn main() {
         println!("{}", s);
     }
 
+    let typed_ast = match generate_typed_ast(ast) {
+        Ok(t) => t,
+        Err(e) => {
+            println!("{:?}", e);
+            exit(0);
+        }
+    };
+
     println!("\n---\n");
+
+    for stmt in typed_ast {
+        println!("{:#?}", stmt);
+    }
 
 }

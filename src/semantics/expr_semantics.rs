@@ -10,10 +10,7 @@ impl Expr {
             }
 
             Expr::Cast(casted_expr, op_location, declr_to_type) => {
-                let to_type = match ValueType::from_declr(declr_to_type, &ss.defined_types) {
-                    Ok(t) => t,
-                    Err(lex) => return Err(SemanticErr::UnknownType(lex))
-                };
+                let to_type = ValueType::from_declr(declr_to_type, &ss.defined_types)?;
 
                 let typed_casted_expr = casted_expr.generate_typed_expr(ss)?;
 
@@ -118,7 +115,7 @@ impl Expr {
 impl PrimaryExpr {
     pub fn generate_typed_expr(&self, ss: &ScopeStack) -> Result<TypedPrimaryExpr, SemanticErr> {
         match self {
-            PrimaryExpr::NumLiteral(num, lexeme) => {
+            PrimaryExpr::NumLiteral(num, _) => {
                 return Ok(TypedPrimaryExpr::NumLiteral(num.clone()))
             }
 
@@ -130,19 +127,19 @@ impl PrimaryExpr {
             PrimaryExpr::EnumVariant(enum_name, enum_variant) => {
                 let enum_template = ss.get_custom_type_from_name(enum_name.clone())?;
 
-                if let CustomType::CustomEnum(template) = enum_template {
+                if let CustomType::CustomEnum(template) = &enum_template {
                     for variant in template.variants.iter().enumerate() {
                         
                         //variant match found
                         if variant.1 == &enum_variant.data() {
                             return Ok(
-                                TypedPrimaryExpr::EnumVariant(template, (enum_variant.data(), variant.0 as u8))
+                                TypedPrimaryExpr::EnumVariant(template.clone(), (enum_variant.data(), variant.0 as u8))
                             )
                         }
                     }
 
                     //if not such variant exists
-                    return Err(SemanticErr::NoEnumVariant(template, enum_variant.clone()))
+                    return Err(SemanticErr::NoEnumVariant(template.clone(), enum_variant.clone()))
                 }
 
                 return Err(SemanticErr::WrongAccess(enum_template, enum_name.clone()))
@@ -273,7 +270,7 @@ impl Args {
     pub fn generate_typed_args(&self, ss: &ScopeStack) -> Result<TypedArgs, SemanticErr> {
         let mut typed_items: Vec<TypedExpr> = vec![];
         
-        for arg in self.items {
+        for arg in &self.items {
             typed_items.push(arg.generate_typed_expr(ss)?);
         }
         
