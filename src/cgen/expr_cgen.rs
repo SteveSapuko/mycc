@@ -9,7 +9,15 @@ impl Expr {
     pub fn cgen(&self, cg: &mut CodeGenerator) {
         match self {
             Expr::Term(b) => {
-                
+                /*
+                for each byte:
+                    ld_nth_byte(R0)
+                    ld_nth_byte(R1)
+                    rmov r0
+                    add
+                    
+
+                */
             }
             
             Expr::Primary(p) => {

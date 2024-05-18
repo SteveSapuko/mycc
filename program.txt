@@ -1,5 +1,1 @@
-fn main() -> u8 {
-    let x: ->u8;
-
-    return *x
-}
+let x: u16 = 5;

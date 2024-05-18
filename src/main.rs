@@ -7,7 +7,7 @@ mod display;
 mod semantics;
 mod types;
 mod typed_ast;
-//mod cgen;
+mod cgen;
 
 use lexer::*;
 use parser::*;
@@ -18,7 +18,6 @@ use std::process::exit;
 use std::{fs::File, io::Read};
 
 fn main() {
-    //std::env::set_var("RUST_BACKTRACE", "1");
 
     let mut f = File::open("program.txt").unwrap();
     let mut text = String::new();

@@ -1,6 +1,8 @@
 
+use crate::semantics::semantic_err::SemanticErr;
 use crate::stmt::TypeDeclr;
 use crate::token::*;
+use crate::types::ValueType;
 
 
 #[derive(Debug, Clone)]
@@ -42,6 +44,14 @@ pub enum NumLiteral {
     I32(i32),
     U64(u64),
     I64(i64),
+}
+
+impl NumLiteral {
+    pub fn implicit_cast(&self, to_type: ValueType) -> Result<NumLiteral, SemanticErr> {
+        match self {
+            NumLiteral::U8()
+        }
+    }
 }
 
 impl NumLiteral {
