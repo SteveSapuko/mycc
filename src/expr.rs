@@ -277,5 +277,11 @@ mod tests {
             x.try_implicit_cast(ValueType::U32),
             Some(NumLiteral::U32(10_000))
         );
+
+        let x = NumLiteral::U8(5);
+        assert_eq!(
+            x.try_implicit_cast(ValueType::U16),
+            Some(NumLiteral::U16(5))
+        );
     }
 }
