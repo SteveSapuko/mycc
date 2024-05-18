@@ -5,7 +5,7 @@ use crate::token::*;
 
 #[derive(Debug, Clone)]
 pub enum Expr {
-    Assign(Box<(Expr, Expr)>),
+    Assign(Box<BinaryExpr>),
     Equality(Box<BinaryExpr>),
     Comparison(Box<BinaryExpr>),
     Term(Box<BinaryExpr>),
@@ -156,8 +156,8 @@ impl Expr {
             }
 
             Expr::Assign(a) => {
-                a.0.neg_unary_literals()?;
-                a.1.neg_unary_literals()?;
+                a.left.neg_unary_literals()?;
+                a.right.neg_unary_literals()?;
             }
 
             Expr::Cast(e, _, _) => {
@@ -199,7 +199,7 @@ impl Expr {
     pub fn get_first_lexeme(&self) -> Lexeme {
         match self {
             Expr::Assign(a) => {
-                a.0.get_first_lexeme()
+                a.left.get_first_lexeme()
             }
 
             Expr::Cast(v, _, _) => v.get_first_lexeme(),

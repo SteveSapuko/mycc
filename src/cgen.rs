@@ -184,43 +184,67 @@ impl CodeGenerator {
 }
 
 impl Variable {
-    pub fn get_offset_from_bp(&self, cg: &CodeGenerator, parent: Option<StructTemplate>) -> u16 {
+    pub fn eval_offset_from_bp(&self, cg: &CodeGenerator, parent: Option<StructTemplate>) -> (ValueType, u16) {
         match self {
             Variable::Id(id) => {
                 match parent {
-                    Some(parent_struct) => {
-                        return parent_struct.get_field_offset_from_head(id.data())
-                    }
-
                     None => {
-                        return 0
+                        cg.get_var(id.data())
+                    }
+                    
+                    Some(parent_struct) => {
+                        return parent_struct.get_field(id.data())
                     }
                 }
             }
 
             Variable::StructField(s) => {
-                let (head, child) = &**s;
+                let (head, tail) = &**s;
                 match parent {
-                    Some(parent_struct) => {
-                        let head_offset_from_parent = parent_struct.get_field(field)
-                    }
-
                     None => {
-                        let head_first_id = head.get_first_lexeme().data();
-                        let (head_type, head_offest_from_bp) = cg.get_var(head_first_id);
+                        let (head_type, head_offest_from_bp) = head.eval_offset_from_bp(cg, parent);
                         
                         if let ValueType::CustomStruct(struct_name) = head_type {
                             let head_struct = cg.ss.get_custom_struct(struct_name).unwrap();
-                            let child_offset_from_head = child.get_offset_from_bp(cg, Some(head_struct));
+                            let (tail_type, tail_offset_from_head) = tail.eval_offset_from_bp(cg, Some(head_struct));
 
-                            return head_offest_from_bp + child_offset_from_head
+                            return (tail_type, head_offest_from_bp + tail_offset_from_head)
                         }
                         
                         unreachable!()
                     }
-                }
+                    
+                    Some(parent_struct) => {
+                        let (head_type, head_offset_from_parent) = head.eval_offset_from_bp(cg, parent);
 
-                ()
+                        if let ValueType::CustomStruct(head_struct_name) = head_type {
+                            let head_struct_template = cg.ss.get_custom_struct(head_struct_name).expect("semantics should have caught this");
+                            let (tail_type, tail_offset_from_head) = tail.eval_offset_from_bp(cg, Some(head_struct_template));
+
+                            return (tail_type, head_offset_from_parent + tail_offset_from_head)
+                        }
+
+                        unreachable!()
+                    }
+                }
+            }
+
+            Variable::Array(array_head, array_index) => {
+                match parent {
+                    None => {
+                        let head_type = array_head.eval_offset_from_bp(cg, parent);
+
+                        if let Expr::Primary(primary_expr) = array_index {
+                            if let PrimaryExpr::NumLiteral(num_literal, _) = primary_expr {
+                                
+                            }
+                        }
+                        
+                        unreachable!()
+                    }
+
+                    ()
+                }
             }
         }
     }

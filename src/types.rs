@@ -37,36 +37,29 @@ pub enum ValueType {
     Pointer(Box<ValueType>),
     Array(Box<ValueType>, u16),
     CustomStruct(String),
-    CustomEnum(CustomEnum),
+    CustomEnum(EnumTemplate),
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct StructTemplate {
+    pub name: String,
+    pub fields: Vec<(String, ValueType, u16)> //u16 is in bytes from first byte of struct
 }
 
 impl StructTemplate {
-    pub fn get_field_type(&self, field: &Lexeme) -> Option<ValueType> {
-        let access_name = field.data();
-        
-        for f in &self.fields {
-            if f.0 == access_name {
-                return Some(f.1.clone())
-            }
-        }
-
-        None
-    }
-
     ///Returns offset from head, as well as type
-    pub fn get_field(&self, field: String) -> (ValueType, u16) {
+    pub fn get_field(&self, field_name: String) -> Option<(ValueType, u16)> {
         for f in &self.fields {
-            if f.0 == field {
-                return (f.1.clone(), f.2)
+            if f.0 == field_name {
+                return Some((f.1.clone(), f.2))
             }
         }
 
         //this function is used only if we know the input code to be valid
-        unreachable!()
+        None
     }
+    
 }
-
-
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct UnfinishedStruct {
@@ -77,7 +70,7 @@ pub struct UnfinishedStruct {
 #[derive(Clone, Debug, PartialEq)]
 pub enum CustomType {
     CustomStruct(StructTemplate),
-    CustomEnum(CustomEnum),
+    CustomEnum(EnumTemplate),
 }
 
 impl CustomType {
@@ -92,7 +85,7 @@ impl CustomType {
 
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct CustomEnum {
+pub struct EnumTemplate {
     pub name: String,
     pub variants: Vec<String>
 }
@@ -113,7 +106,7 @@ impl MaybeType {
 }
 
 impl ValueType {
-    pub fn from_declr(declr: &TypeDeclr, ss: &mut ScopeStack) -> Result<ValueType, Lexeme> {
+    pub fn from_declr(declr: &TypeDeclr, defined_types: &Vec<CustomType>) -> Result<ValueType, Lexeme> {
         match declr {
             TypeDeclr::Basic(lex) => {
                 let type_text = lex.data();
@@ -136,7 +129,7 @@ impl ValueType {
                     _ => {}
                 }
 
-                for t in ss.defined_types() {
+                for t in defined_types {
                     match &t {
                         CustomType::CustomEnum(e) => {
                             if lex.data() == e.name {
@@ -158,12 +151,12 @@ impl ValueType {
             }
 
             TypeDeclr::Pointer(p) => {
-                let points_to = ValueType::from_declr(p, ss)?;
+                let points_to = ValueType::from_declr(p, defined_types)?;
                 return Ok(ValueType::Pointer(Box::new(points_to)))
             }
 
             TypeDeclr::Array(item_t, size) => {
-                let item_type = ValueType::from_declr(item_t, ss)?;
+                let item_type = ValueType::from_declr(item_t, defined_types)?;
                 return Ok(ValueType::Array(Box::new(item_type), *size))
             }
         }
@@ -215,6 +208,25 @@ impl ValueType {
 
                 sum
             }
+        }
+    }
+
+    pub fn dereference(&self) -> Option<ValueType> {
+        if let ValueType::Pointer(points_to_type) = self {
+            return Some(*points_to_type.clone())
+        }
+
+        None
+    }
+
+    pub fn is_primitive_type(&self) -> bool {
+        match self {
+            ValueType::Array(_, _) => false,
+            ValueType::CustomEnum(_) => false,
+            ValueType::CustomStruct(_) => false,
+            ValueType::Void => false,
+
+            _ => true,
         }
     }
 }

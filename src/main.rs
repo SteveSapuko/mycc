@@ -6,11 +6,12 @@ mod stmt;
 mod display;
 mod semantics;
 mod types;
-mod cgen;
+mod typed_ast;
+//mod cgen;
 
 use lexer::*;
 use parser::*;
-use semantics::check_semantics;
+//use semantics::check_semantics;
 
 
 use std::process::exit;
@@ -55,10 +56,5 @@ fn main() {
     }
 
     println!("\n---\n");
-
-    match check_semantics(&ast) {
-        Ok(_) => println!("success"),
-        Err(e) => println!("error - {:?}", e)
-    }
 
 }

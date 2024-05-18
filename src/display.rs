@@ -73,7 +73,7 @@ impl Display for NumLiteral {
 impl Display for Expr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Assign(t) => write!(f, "{} = {}", t.0, t.1),
+            Self::Assign(t) => write!(f, "{} = {}", t.left, t.right),
             Self::Equality(t) => write!(f, "{}", t),
             Self::Comparison(t) => write!(f, "{}", t),
             Self::Term(t) => write!(f, "{}", t),

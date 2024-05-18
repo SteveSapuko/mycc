@@ -9,9 +9,10 @@ impl Parser {
         let mut left = self.parse_equality()?;
 
         if self.match_tok(Token::Op("=".to_string())) {
+            let op = self.previous();
             let right = self.parse_assign()?;
 
-            left = Expr::Assign(Box::new((left, right)))
+            left = Expr::Assign(Box::new(BinaryExpr { left , operator: op, right }))
         }
 
         Ok(left)
