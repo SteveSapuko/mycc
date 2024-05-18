@@ -55,7 +55,7 @@ fn main() {
         println!("{}", s);
     }
 
-    let typed_ast = match generate_typed_ast(ast) {
+    let (typed_ast, custom_types) = match generate_typed_ast(ast) {
         Ok(t) => t,
         Err(e) => {
             println!("{:?}", e);
@@ -63,6 +63,12 @@ fn main() {
         }
     };
 
+    println!("\n---\n");
+
+    for t in custom_types {
+        println!("{:#?}", t);
+    }
+    
     println!("\n---\n");
 
     for stmt in typed_ast {

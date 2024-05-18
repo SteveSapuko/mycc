@@ -25,15 +25,104 @@ enum ScopeStackOp {
     DeclrVar(String, ValueType),
 }
 
-pub fn generate_typed_ast(ast: Vec<Stmt>) -> Result<Vec<TypedStmt>, SemanticErr> {
+pub fn generate_typed_ast(ast: Vec<Stmt>) -> Result<(Vec<TypedStmt>, Vec<CustomType>), SemanticErr> {
     let mut ss = ScopeStack::new();
     let mut typed_ast: Vec<TypedStmt> = vec![];
 
-    for stmt in ast {
-        typed_ast.push(stmt.generate_typed_stmt(&mut ss)?);
+    //generating custom types
+    let mut being_defined: Vec<String> = vec![];
+
+    //first pass, defining all enums
+    for stmt in ast.iter() {
+        if let Stmt::EnumDeclr(enum_name, variants) = stmt {
+            if ss.global_used_ids.contains(&enum_name.data()) {
+                return Err(SemanticErr::UsedId(enum_name.clone()))
+            }
+
+            let mut variants_list: Vec<String> = vec![];
+            for variant_name in variants.iter() {
+                if variants_list.contains(&variant_name.data()) {
+                    return Err(SemanticErr::EnumDuplicateVariants(variant_name.clone()))
+                }
+
+                variants_list.push(variant_name.data());
+            }
+
+            let variants_with_index = variants_list.iter().enumerate()
+            .map(|x| (x.1.clone(), x.0 as u8)).collect::<Vec<(String, u8)>>();
+
+            let enum_template = EnumTemplate {
+                name: enum_name.data(),
+                variants: variants_with_index
+            };
+
+            ss.declare_custom_type(CustomType::CustomEnum(enum_template));
+        }
+    }
+
+    //second pass, adding every custom struct's name to being_defined
+    for stmt in ast.iter() {
+        if let Stmt::StructDeclr(struct_name, _) = stmt {
+            if ss.global_used_ids.contains(&struct_name.data()) || being_defined.contains(&struct_name.data()) {
+                return Err(SemanticErr::UsedId(struct_name.clone()))
+            }
+
+            being_defined.push(struct_name.data());
+        }
+    }
+
+    let mut struct_templates: Vec<StructTemplate> = vec![];
+    //third pass, generating all struct templates
+    for stmt in ast.iter() {
+        if let Stmt::StructDeclr(struct_name, params) = stmt {
+            let typed_params = params.generate_typed_params(&ss, Some(&being_defined))?;
+            
+            let template = StructTemplate {
+                name: struct_name.data(),
+                fields: typed_params.items.iter()
+                .map(|x| (x.0.clone(), x.1.clone(), 0 as u16))
+                .collect::<Vec<(String, ValueType, u16)>>()
+            };
+
+            struct_templates.push(template.clone());
+            ss.declare_custom_type(CustomType::CustomStruct(template));
+        }
+    }
+
+    //making sure no structs are recursive
+    for template in struct_templates.iter() {
+        template.check_recursive(&ss, 0)?;
+    }
+
+    let mut final_struct_templates: Vec<StructTemplate> = vec![];
+    //calculating field offsets from head
+    for template in struct_templates {
+        let mut sum: u16 = 0;
+        let mut new_fields: Vec<(String, ValueType, u16)> = vec![];
+
+        for field in template.fields.iter() {
+            new_fields.push((field.0.clone(), field.1.clone(), sum));
+            sum += field.1.size(&ss);
+        }
+
+        final_struct_templates.push(StructTemplate {
+            name: template.name,
+            fields: new_fields }
+        );
+    }
+
+    //removing incomplete structs and adding structs with fields offset from head
+    ss.remove_all_structs();
+    for template in final_struct_templates {
+        ss.declare_custom_type(CustomType::CustomStruct(template));
+    }    
+
+    //generating AST
+    for stmt in ast.iter() {
+        typed_ast.push(stmt.generate_typed_stmt(&mut ss, false)?);
     }
     
-    Ok(typed_ast)
+    Ok((typed_ast, ss.defined_types))
 }
 
 //ScopeStack helper functions
@@ -138,6 +227,18 @@ impl ScopeStack {
         None
     }
 
+    pub fn remove_all_structs(&mut self) {
+        let mut ptr: usize = 0;
+
+        while ptr < self.defined_types.len() {
+            if let CustomType::CustomStruct(_) = self.defined_types[ptr] {
+                self.defined_types.remove(ptr);
+                continue
+            }
+            ptr += 1;
+        }
+    }
+
     pub fn declare_var(&mut self, name: String, t: ValueType) {
         self.used_ids.push(name.clone());
         self.stack.push(ScopeStackOp::DeclrVar(name, t));
@@ -180,9 +281,9 @@ pub struct FnTemplate {
 
 
 impl StructTemplate {
-    pub fn check_recursive(&self, ss: &ScopeStack, iteration: u8) -> Result<(), String> {
+    pub fn check_recursive(&self, ss: &ScopeStack, iteration: u8) -> Result<(), SemanticErr> {
         if iteration == 100 {
-            return Err(self.name.clone())
+            return Err(SemanticErr::RecursiveStruct(self.name.clone()))
         }
         
         for f in self.fields.iter() {

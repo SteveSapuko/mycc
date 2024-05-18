@@ -128,18 +128,13 @@ impl PrimaryExpr {
                 let enum_template = ss.get_custom_type_from_name(enum_name.clone())?;
 
                 if let CustomType::CustomEnum(template) = &enum_template {
-                    for variant in template.variants.iter().enumerate() {
-                        
-                        //variant match found
-                        if variant.1 == &enum_variant.data() {
-                            return Ok(
-                                TypedPrimaryExpr::EnumVariant(template.clone(), (enum_variant.data(), variant.0 as u8))
-                            )
-                        }
-                    }
+                    let variant_number = match template.get_variant(enum_variant.data()) {
+                        Some(t) => t,
+                        None => return Err(SemanticErr::NoEnumVariant(template.clone(), enum_variant.clone()))
+                    };
 
-                    //if not such variant exists
-                    return Err(SemanticErr::NoEnumVariant(template.clone(), enum_variant.clone()))
+                    return Ok(TypedPrimaryExpr::EnumVariant(template.clone(), (enum_variant.data(), variant_number)))
+                    
                 }
 
                 return Err(SemanticErr::WrongAccess(enum_template, enum_name.clone()))

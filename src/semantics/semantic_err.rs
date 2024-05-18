@@ -23,4 +23,5 @@ pub enum SemanticErr {
     RecursiveStruct(String),
     CantCast(Lexeme),
     CantOp(Lexeme),
+    CantDeclareThisInLocalScope(Lexeme),
 }

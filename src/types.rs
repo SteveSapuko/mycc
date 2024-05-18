@@ -64,12 +64,6 @@ impl StructTemplate {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct UnfinishedStruct {
-    pub name: Lexeme,
-    pub fields: Vec<(Lexeme, MaybeType)>
-}
-
-#[derive(Clone, Debug, PartialEq)]
 pub enum CustomType {
     CustomStruct(StructTemplate),
     CustomEnum(EnumTemplate),
@@ -89,21 +83,17 @@ impl CustomType {
 #[derive(Clone, Debug, PartialEq)]
 pub struct EnumTemplate {
     pub name: String,
-    pub variants: Vec<String>
+    pub variants: Vec<(String, u8)>
 }
 
-#[derive(Clone, Debug, PartialEq)]
-pub enum MaybeType {
-    Resolved(ValueType),
-    Unresolved(TypeDeclr),
-}
-
-impl MaybeType {
-    pub fn unwrap(&self) -> ValueType {
-        match self {
-            Self::Resolved(t) => t.clone(),
-            Self::Unresolved(_) => panic!("Unwrapped Unresolved Type"),
+impl EnumTemplate {
+    pub fn get_variant(&self, target: String) -> Option<u8> {
+        for v in self.variants.iter() {
+            if v.0 == target {
+                return Some(v.1)
+            }
         }
+        None
     }
 }
 

@@ -1,13 +1,13 @@
 use super::*;
 
 impl Stmt {
-    pub fn generate_typed_stmt(&self, ss: &mut ScopeStack) -> Result<TypedStmt, SemanticErr> {
+    pub fn generate_typed_stmt(&self, ss: &mut ScopeStack, in_local_scope: bool) -> Result<TypedStmt, SemanticErr> {
         match self {
             Stmt::Block(body) => {
                 let mut typed_body: Vec<TypedStmt> = vec![];
 
                 for s in body {
-                    typed_body.push(s.generate_typed_stmt(ss)?);
+                    typed_body.push(s.generate_typed_stmt(ss, true)?);
                 }
 
                 return Ok(TypedStmt::Block(typed_body))
@@ -45,13 +45,19 @@ impl Stmt {
             }
 
             Stmt::FnDeclr(fn_name, params, ret_type, body) => {
+                if in_local_scope {
+                    return Err(SemanticErr::CantDeclareThisInLocalScope(fn_name.clone()))
+                }
+                
                 if ss.all_used_ids().contains(&fn_name.data()) {
                     return Err(SemanticErr::UsedId(fn_name.clone()))
                 }
 
                 let typed_params = params.generate_typed_params(ss, None)?;
                 let typed_ret_type = ValueType::from_declr(ret_type, &ss.defined_types)?;
-                let typed_body = body.generate_typed_stmt(ss)?;
+                
+                ss.enter_returnable(typed_ret_type.clone());
+                let typed_body = body.generate_typed_stmt(ss, true)?;
 
                 let fn_template = FnTemplate {
                     name: fn_name.data(),
@@ -66,11 +72,83 @@ impl Stmt {
             }
 
             //struct declaration is done before
-            Stmt::StructDeclr(_, _) => Ok(TypedStmt::CustomTypeDeclr),
+            Stmt::StructDeclr(struct_name, _) => {
+                if in_local_scope {
+                    return Err(SemanticErr::CantDeclareThisInLocalScope(struct_name.clone()))
+                }
 
+                Ok(TypedStmt::CustomTypeDeclr)
+            },
 
-            
-            _ => todo!()
+            Stmt::EnumDeclr(name, _) => {
+                if in_local_scope {
+                    return Err(SemanticErr::CantDeclareThisInLocalScope(name.clone()))
+                }
+
+                Ok(TypedStmt::CustomTypeDeclr)
+            }
+
+            Stmt::ReturnStmt(op, expr) => {
+                let nearest_ret_type = match ss.get_nearest_ret_type() {
+                    Some(t) => t,
+                    None => return Err(SemanticErr::CantReturn(op.clone()))
+                };
+
+                let typed_expr = expr.generate_typed_expr(ss)?;
+
+                if typed_expr.final_type() != nearest_ret_type {
+                    return Err(SemanticErr::WrongType(nearest_ret_type, typed_expr.final_type(), op.clone()))
+                }
+
+                return Ok(TypedStmt::ReturnStmt(typed_expr))
+            }
+
+            Stmt::BreakStmt(op) => {
+                if !ss.check_if_breakable() {
+                    return Err(SemanticErr::CantBreak(op.clone()))
+                }
+
+                return Ok(TypedStmt::BreakStmt)
+            }
+
+            Stmt::IfStmt(condition, t_branch, f_branch) => {
+                let typed_condition = condition.generate_typed_expr(ss)?;
+                
+                if typed_condition.final_type() != ValueType::U8 {
+                    return Err(SemanticErr::WrongType(ValueType::U8, typed_condition.final_type(), condition.get_first_lexeme()))
+                }
+
+                let typed_t_branch = t_branch.generate_typed_stmt(ss, true)?;
+                
+                let typed_f_branch: Option<Box<TypedStmt>>;
+
+                if let Some(f_body) = f_branch {
+                    let typed_f_body = f_body.generate_typed_stmt(ss, true)?;
+
+                    typed_f_branch = Some(Box::new(typed_f_body));
+                } else {
+                    typed_f_branch = None;
+                }
+
+                return Ok(TypedStmt::IfStmt(typed_condition, Box::new(typed_t_branch), typed_f_branch))
+            }
+
+            Stmt::WhileStmt(cond, body) => {
+                let typed_cond = cond.generate_typed_expr(ss)?;
+
+                if typed_cond.final_type() != ValueType::U8 {
+                    return Err(SemanticErr::WrongType(ValueType::U8, typed_cond.final_type(), cond.get_first_lexeme()))
+                }
+
+                let typed_body = body.generate_typed_stmt(ss, true)?;
+
+                return Ok(TypedStmt::WhileStmt(typed_cond, Box::new(typed_body)))
+            }
+
+            Stmt::LoopStmt(body) => {
+                let typed_body = body.generate_typed_stmt(ss, true)?;
+                return Ok(TypedStmt::LoopStmt(Box::new(typed_body)))
+            }
         }
     
     }
