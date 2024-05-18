@@ -1,9 +1,24 @@
-
 use crate::semantics::semantic_err::SemanticErr;
 use crate::stmt::TypeDeclr;
 use crate::token::*;
 use crate::types::ValueType;
 
+#[macro_export]
+macro_rules! try_into_all_types {
+    ($self:ident, $t:ident) => {
+        match $t {
+            ValueType::U8 => $self.try_into().ok().map(|x| NumLiteral::U8(x)),
+            ValueType::I8 => $self.try_into().ok().map(|x| NumLiteral::U8(x)),
+            ValueType::U16 => $self.try_into().ok().map(|x| NumLiteral::U16(x)),
+            ValueType::I16 => $self.try_into().ok().map(|x| NumLiteral::I16(x)),
+            ValueType::U32 => $self.try_into().ok().map(|x| NumLiteral::U32(x)),
+            ValueType::I32 => $self.try_into().ok().map(|x| NumLiteral::I32(x)),
+            ValueType::U64 => $self.try_into().ok().map(|x| NumLiteral::I64(x)),
+            ValueType::I64 => $self.try_into().ok().map(|x| NumLiteral::U64(x)),
+            _ => None,
+        }
+    };
+}
 
 #[derive(Debug, Clone)]
 pub enum Expr {
@@ -34,7 +49,7 @@ pub struct BinaryExpr {
     pub right: Expr,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum NumLiteral {
     U8(u8),
     I8(i8),
@@ -47,53 +62,58 @@ pub enum NumLiteral {
 }
 
 impl NumLiteral {
-    pub fn implicit_cast(&self, to_type: ValueType) -> Result<NumLiteral, SemanticErr> {
-        match self {
-            NumLiteral::U8()
+    pub fn try_implicit_cast(&self, ty: ValueType) -> Option<NumLiteral> {
+        match *self {
+            Self::U8(x) => try_into_all_types!(x, ty),
+            Self::I8(x) => try_into_all_types!(x, ty),
+            Self::U16(x) => try_into_all_types!(x, ty),
+            Self::I16(x) => try_into_all_types!(x, ty),
+            Self::U32(x) => try_into_all_types!(x, ty),
+            Self::I32(x) => try_into_all_types!(x, ty),
+            Self::U64(x) => try_into_all_types!(x, ty),
+            Self::I64(x) => try_into_all_types!(x, ty),
         }
     }
-}
 
-impl NumLiteral {
     pub fn negate(&self) -> Result<NumLiteral, ()> {
         match *self {
             Self::U8(n) => {
                 if n > (i8::MIN as i16 * -1) as u8 {
-                    return Ok(NumLiteral::I16((n as i16) * -1))
+                    return Ok(NumLiteral::I16((n as i16) * -1));
                 } else {
-                    return Ok(NumLiteral::I8(((n as i16) * -1) as i8))
+                    return Ok(NumLiteral::I8(((n as i16) * -1) as i8));
                 }
             }
 
             Self::U16(n) => {
                 if n > (i16::MIN as i32 * -1) as u16 {
-                    return Ok(NumLiteral::I32((n as i32) * -1))
+                    return Ok(NumLiteral::I32((n as i32) * -1));
                 } else {
-                    return Ok(NumLiteral::I16(((n as i32) * -1) as i16))
+                    return Ok(NumLiteral::I16(((n as i32) * -1) as i16));
                 }
             }
 
             Self::U32(n) => {
                 if n > (i32::MIN as i64 * -1) as u32 {
-                    return Ok(NumLiteral::I64((n as i64) * -1))
+                    return Ok(NumLiteral::I64((n as i64) * -1));
                 } else {
-                    return Ok(NumLiteral::I32(((n as i64) * -1) as i32))
+                    return Ok(NumLiteral::I32(((n as i64) * -1) as i32));
                 }
             }
 
             Self::U64(n) => {
-                if n > 9_223_372_036_854_775_807 { //abs(i64::MIN)
-                    return Err(())
+                if n > 9_223_372_036_854_775_807 {
+                    //abs(i64::MIN)
+                    return Err(());
                 } else {
-                    return Ok(NumLiteral::I64((n as i64) * -1))
+                    return Ok(NumLiteral::I64((n as i64) * -1));
                 }
             }
 
-            _ => panic!("Negative values should not be in a UnaryExpr")
+            _ => panic!("Negative values should not be in a UnaryExpr"),
         }
     }
 }
-
 
 #[derive(Debug, Clone)]
 pub enum Variable {
@@ -104,7 +124,7 @@ pub enum Variable {
 
 #[derive(Debug, Clone)]
 pub struct Args {
-    pub items: Vec<Expr>
+    pub items: Vec<Expr>,
 }
 
 impl BinaryExpr {
@@ -136,13 +156,9 @@ impl Variable {
 
     pub fn get_first_lexeme(&self) -> Lexeme {
         match self {
-            Variable::Array(n, _) => {
-                n.get_first_lexeme()
-            }
+            Variable::Array(n, _) => n.get_first_lexeme(),
             Variable::Id(id) => id.clone(),
-            Variable::StructField(s) => {
-                s.0.get_first_lexeme()
-            }
+            Variable::StructField(s) => s.0.get_first_lexeme(),
         }
     }
 }
@@ -156,9 +172,12 @@ impl Expr {
                         if let PrimaryExpr::NumLiteral(n, l) = &**p {
                             match n.negate() {
                                 Ok(new) => {
-                                    *self = Expr::Primary(Box::new(PrimaryExpr::NumLiteral(new, l.clone())))   
+                                    *self = Expr::Primary(Box::new(PrimaryExpr::NumLiteral(
+                                        new,
+                                        l.clone(),
+                                    )))
                                 }
-                                Err(_) => return Err(operator.clone())
+                                Err(_) => return Err(operator.clone()),
                             }
                         }
                     }
@@ -184,33 +203,29 @@ impl Expr {
                 }
             }
 
-            Expr::Primary(p) => {
-                match &mut **p {
-                    PrimaryExpr::Grouping(g) => g.neg_unary_literals()?,
+            Expr::Primary(p) => match &mut **p {
+                PrimaryExpr::Grouping(g) => g.neg_unary_literals()?,
 
-                    PrimaryExpr::Variable(v) => v.neg_unary_literals()?,
+                PrimaryExpr::Variable(v) => v.neg_unary_literals()?,
 
-                    PrimaryExpr::Ref(_, v) => {
-                        v.neg_unary_literals()?;
-                    }
-
-                    _ => {}
+                PrimaryExpr::Ref(_, v) => {
+                    v.neg_unary_literals()?;
                 }
-            }
 
-            Expr::Shift(v,_ ,_ ) => v.neg_unary_literals()?,
+                _ => {}
+            },
 
-            Expr::Term(b) => b.neg_unary_literals()?
+            Expr::Shift(v, _, _) => v.neg_unary_literals()?,
+
+            Expr::Term(b) => b.neg_unary_literals()?,
         }
-        
+
         Ok(())
     }
 
     pub fn get_first_lexeme(&self) -> Lexeme {
         match self {
-            Expr::Assign(a) => {
-                a.left.get_first_lexeme()
-            }
+            Expr::Assign(a) => a.left.get_first_lexeme(),
 
             Expr::Cast(v, _, _) => v.get_first_lexeme(),
 
@@ -226,19 +241,41 @@ impl Expr {
 
             Expr::FnCall(name, _) => name.clone(),
 
-            Expr::Primary(p) => {
-                match &**p {
-                    PrimaryExpr::EnumVariant(n, _) => n.clone(),
+            Expr::Primary(p) => match &**p {
+                PrimaryExpr::EnumVariant(n, _) => n.clone(),
 
-                    PrimaryExpr::Grouping(g) => g.get_first_lexeme(),
+                PrimaryExpr::Grouping(g) => g.get_first_lexeme(),
 
-                    PrimaryExpr::NumLiteral(_, l) => l.clone(),
+                PrimaryExpr::NumLiteral(_, l) => l.clone(),
 
-                    PrimaryExpr::Ref(op, _) => op.clone(),
+                PrimaryExpr::Ref(op, _) => op.clone(),
 
-                    PrimaryExpr::Variable(v) => v.get_first_lexeme(),
-                }
-            }
+                PrimaryExpr::Variable(v) => v.get_first_lexeme(),
+            },
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::NumLiteral;
+    use super::ValueType;
+
+    #[test]
+    fn test_implicit_cast() {
+        let x = NumLiteral::I8(2);
+        assert_eq!(x.try_implicit_cast(ValueType::U8), Some(NumLiteral::U8(2)));
+
+        let x = NumLiteral::U16(10_000);
+        assert_eq!(x.try_implicit_cast(ValueType::U8), None);
+
+        let x = NumLiteral::I16(-10_000);
+        assert_eq!(x.try_implicit_cast(ValueType::U32), None);
+
+        let x = NumLiteral::U16(10_000);
+        assert_eq!(
+            x.try_implicit_cast(ValueType::U32),
+            Some(NumLiteral::U32(10_000))
+        );
     }
 }

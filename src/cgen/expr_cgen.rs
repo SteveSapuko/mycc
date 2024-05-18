@@ -1,7 +1,6 @@
 use super::*;
-use crate::types::*;
 use crate::expr::*;
-
+use crate::types::*;
 
 impl Expr {
     ///Value which the Expr eventaully evaluates to
@@ -15,40 +14,35 @@ impl Expr {
                     ld_nth_byte(R1)
                     rmov r0
                     add
-                    
+
 
                 */
             }
-            
-            Expr::Primary(p) => {
-                match &**p {
-                    PrimaryExpr::Grouping(e) => e.cgen(cg),
 
-                    PrimaryExpr::NumLiteral(n, _) => {
-                        for i in 0..n.size() {
-                            n.ld_nth_byte_to_reg(R0, i, cg);
-                            cg.write_instruction(Instruction::Push(R0));
-                            cg.increase_sp_by(1);
-                        }
-                    }
+            Expr::Primary(p) => match &**p {
+                PrimaryExpr::Grouping(e) => e.cgen(cg),
 
-                    PrimaryExpr::Variable(v) => {
-                        if v.location_known_at_compile() {
-                            
-                        } else {
-
-                        }
+                PrimaryExpr::NumLiteral(n, _) => {
+                    for i in 0..n.size() {
+                        n.ld_nth_byte_to_reg(R0, i, cg);
+                        cg.write_instruction(Instruction::Push(R0));
+                        cg.increase_sp_by(1);
                     }
                 }
-            }
+
+                PrimaryExpr::Variable(v) => {
+                    if v.location_known_at_compile() {
+                    } else {
+                    }
+                }
+            },
         }
     }
 }
 
 impl NumLiteral {
     pub fn ld_nth_byte_to_reg(&self, reg: REG, n: u16, cg: &mut CodeGenerator) {
-        let value_to_load: u8 = 
-        match self {
+        let value_to_load: u8 = match self {
             NumLiteral::U8(v) => {
                 if n == 0 {
                     *v
@@ -61,7 +55,8 @@ impl NumLiteral {
                 if n == 0 {
                     *v as u8
                 } else {
-                    if *v < 0 { //extend sign bit
+                    if *v < 0 {
+                        //extend sign bit
                         255
                     } else {
                         0
@@ -81,7 +76,8 @@ impl NumLiteral {
                 if n < 2 {
                     (*v << n * 8) as u8
                 } else {
-                    if *v < 0 { //extend sign bit
+                    if *v < 0 {
+                        //extend sign bit
                         255
                     } else {
                         0
@@ -101,7 +97,8 @@ impl NumLiteral {
                 if n < 4 {
                     (*v << n * 8) as u8
                 } else {
-                    if *v < 0 { //extend sign bit
+                    if *v < 0 {
+                        //extend sign bit
                         255
                     } else {
                         0
@@ -121,7 +118,8 @@ impl NumLiteral {
                 if n < 8 {
                     (*v << n * 8) as u8
                 } else {
-                    if *v < 0 { //extend sign bit
+                    if *v < 0 {
+                        //extend sign bit
                         255
                     } else {
                         0
