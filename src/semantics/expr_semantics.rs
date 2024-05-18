@@ -230,11 +230,20 @@ impl Variable {
         
             Variable::Array(arr_name, index) => {
                 let typed_array_head = arr_name.generate_typed_variable(ss, parent)?;
-                let array_head_item_type = typed_array_head.final_type();
+                let array_type = typed_array_head.final_type();
+
+                let head_item_type = match array_type {
+                    ValueType::Array(item_type, _) => *item_type,
+
+                    ValueType::Pointer(to_type) => *to_type,
+
+                    _ => return Err(SemanticErr::NotAnArray(arr_name.get_first_lexeme()))
+                };
+
 
                 let typed_index = index.generate_typed_expr(ss)?;
 
-                return Ok(TypedVariable::Array(array_head_item_type, Box::new(typed_array_head), typed_index))
+                return Ok(TypedVariable::Array(head_item_type, Box::new(typed_array_head), typed_index))
             }
             
         }

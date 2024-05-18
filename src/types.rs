@@ -1,7 +1,6 @@
 use crate::stmt::TypeDeclr;
 use crate::expr::*;
 use crate::semantics::*;
-use crate::token::Lexeme;
 
 use self::semantic_err::SemanticErr;
 

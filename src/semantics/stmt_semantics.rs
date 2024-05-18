@@ -6,9 +6,11 @@ impl Stmt {
             Stmt::Block(body) => {
                 let mut typed_body: Vec<TypedStmt> = vec![];
 
+                ss.enter_scope();
                 for s in body {
                     typed_body.push(s.generate_typed_stmt(ss, true)?);
                 }
+                ss.leave_scope();
 
                 return Ok(TypedStmt::Block(typed_body))
             }
@@ -140,13 +142,16 @@ impl Stmt {
                     return Err(SemanticErr::WrongType(ValueType::U8, typed_cond.final_type(), cond.get_first_lexeme()))
                 }
 
+                ss.enter_breakable();
                 let typed_body = body.generate_typed_stmt(ss, true)?;
 
                 return Ok(TypedStmt::WhileStmt(typed_cond, Box::new(typed_body)))
             }
 
             Stmt::LoopStmt(body) => {
+                ss.enter_breakable();
                 let typed_body = body.generate_typed_stmt(ss, true)?;
+
                 return Ok(TypedStmt::LoopStmt(Box::new(typed_body)))
             }
         }

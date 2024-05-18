@@ -35,7 +35,6 @@ impl Lexer {
         ^continue |
         ^struct |
         ^enum |
-        ^ @ |
         ^break").unwrap();
 
         let reg_op = Regex::new(r"(?x)

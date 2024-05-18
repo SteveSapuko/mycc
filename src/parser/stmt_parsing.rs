@@ -2,7 +2,7 @@ use super::*;
 
 impl Parser {
     pub fn parse_type_declr(&mut self) -> Result<TypeDeclr, &'static str> {
-        if self.match_tok(Token::Key("@".to_string())) {
+        if self.match_tok(Token::Arrow) {
             let points_to = self.parse_type_declr()?;
             return Ok(TypeDeclr::Pointer(Box::new(points_to)))
         }
