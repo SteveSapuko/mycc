@@ -1,24 +1,22 @@
-mod token;
+mod display;
+mod expr;
 mod lexer;
 mod parser;
-mod expr;
-mod stmt;
-mod display;
 mod semantics;
-mod types;
+mod stmt;
+mod token;
 mod typed_ast;
-mod cgen;
+mod types;
+// mod cgen;
 
 use lexer::*;
 use parser::*;
 use semantics::generate_typed_ast;
 
-
 use std::process::exit;
 use std::{fs::File, io::Read};
 
 fn main() {
-
     let mut f = File::open("program.txt").unwrap();
     let mut text = String::new();
     f.read_to_string(&mut text).unwrap();
@@ -26,8 +24,7 @@ fn main() {
     text.push('\0');
 
     let mut lexer = Lexer::new(text).unwrap();
-    let lexemes = 
-    match lexer.lex() {
+    let lexemes = match lexer.lex() {
         Ok(t) => t,
         Err(_) => {
             println!("Lexing Error at Line: {} Col: {}", lexer.line, lexer.col);
@@ -67,11 +64,10 @@ fn main() {
     for t in custom_types {
         println!("{:#?}", t);
     }
-    
+
     println!("\n---\n");
 
     for stmt in typed_ast {
         println!("{:#?}", stmt);
     }
-
 }
