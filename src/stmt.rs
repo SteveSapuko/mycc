@@ -26,18 +26,6 @@ pub enum TypeDeclr {
     Array(Box<TypeDeclr>, u16),
 }
 
-impl TypeDeclr {
-    pub fn get_id(&self) -> Lexeme {
-        match self {
-            TypeDeclr::Basic(l) => l.clone(),
-
-            TypeDeclr::Array(item, _) => item.get_id(),
-
-            TypeDeclr::Pointer(p_type) => p_type.get_id()
-        }
-    }
-}
-
 #[derive(Debug, Clone)]
 pub struct Parameters {
     pub params: Vec<(Lexeme, TypeDeclr)>

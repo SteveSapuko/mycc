@@ -57,7 +57,7 @@ impl Expr {
                 let mut typed_right = assign.right.generate_typed_expr(ss)?;
 
                 if !typed_left.is_assignable() {
-                    return Err(SemanticErr::CantOp(assign.operator.clone()))
+                    return Err(SemanticErr::NotAVar(assign.operator.clone()))
                 }
 
                 let left_type = typed_left.final_type();
