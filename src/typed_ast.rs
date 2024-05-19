@@ -59,6 +59,24 @@ impl TypedExpr {
             _ => false
         }
     }
+
+    pub fn try_implicit_cast(&mut self, ty: &ValueType) -> bool {
+        if let TypedExpr::Primary(final_type, primary) = self {
+            if let TypedPrimaryExpr::NumLiteral(original_num_literal) = &mut **primary {
+                match original_num_literal.try_implicit_cast(ty) {
+                    Some(cast_num_lit) => {
+                        *original_num_literal = cast_num_lit;
+                        *final_type = ty.clone();
+                        true}
+                    None => false
+                }
+            } else {
+                false
+            }
+        } else {
+            false
+        }
+    }
 }
 
 

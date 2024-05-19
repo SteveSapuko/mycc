@@ -1,4 +1,3 @@
-use crate::semantics::semantic_err::SemanticErr;
 use crate::stmt::TypeDeclr;
 use crate::token::*;
 use crate::types::ValueType;
@@ -62,7 +61,7 @@ pub enum NumLiteral {
 }
 
 impl NumLiteral {
-    pub fn try_implicit_cast(&self, ty: ValueType) -> Option<NumLiteral> {
+    pub fn try_implicit_cast(&self, ty: &ValueType) -> Option<NumLiteral> {
         match *self {
             Self::U8(x) => try_into_all_types!(x, ty),
             Self::I8(x) => try_into_all_types!(x, ty),
@@ -264,23 +263,23 @@ mod tests {
     #[test]
     fn test_implicit_cast() {
         let x = NumLiteral::I8(2);
-        assert_eq!(x.try_implicit_cast(ValueType::U8), Some(NumLiteral::U8(2)));
+        assert_eq!(x.try_implicit_cast(&ValueType::U8), Some(NumLiteral::U8(2)));
 
         let x = NumLiteral::U16(10_000);
-        assert_eq!(x.try_implicit_cast(ValueType::U8), None);
+        assert_eq!(x.try_implicit_cast(&ValueType::U8), None);
 
         let x = NumLiteral::I16(-10_000);
-        assert_eq!(x.try_implicit_cast(ValueType::U32), None);
+        assert_eq!(x.try_implicit_cast(&ValueType::U32), None);
 
         let x = NumLiteral::U16(10_000);
         assert_eq!(
-            x.try_implicit_cast(ValueType::U32),
+            x.try_implicit_cast(&ValueType::U32),
             Some(NumLiteral::U32(10_000))
         );
 
         let x = NumLiteral::U8(5);
         assert_eq!(
-            x.try_implicit_cast(ValueType::U16),
+            x.try_implicit_cast(&ValueType::U16),
             Some(NumLiteral::U16(5))
         );
     }

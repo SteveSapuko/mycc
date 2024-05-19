@@ -25,11 +25,13 @@ impl Stmt {
                 let final_init_value: Option<TypedExpr>;
 
                 if let Some(init_expr) = value {
-                    let typed_init_expr = init_expr.generate_typed_expr(ss)?;
+                    let mut typed_init_expr = init_expr.generate_typed_expr(ss)?;
                     let init_value_type = typed_init_expr.final_type();
 
                     if init_value_type != var_type {
-                        return Err(SemanticErr::WrongType(var_type, init_value_type, name.clone()))
+                        if !typed_init_expr.try_implicit_cast(&var_type) {
+                            return Err(SemanticErr::WrongType(var_type, init_value_type, name.clone()))
+                        }
                     }
                     
                     final_init_value = Some(typed_init_expr);

@@ -14,7 +14,10 @@ impl Expr {
 
                 let typed_casted_expr = casted_expr.generate_typed_expr(ss)?;
 
-                //TODO make sure only certain types can be cast
+
+                if !typed_casted_expr.final_type().is_primitive_type() || !to_type.is_primitive_type() {
+                    return Err(SemanticErr::CantCast(op_location.clone()))
+                }
 
                 return Ok(TypedExpr::Cast(to_type, Box::new(typed_casted_expr)))
             }
@@ -51,7 +54,7 @@ impl Expr {
 
             Expr::Assign(assign) => {
                 let typed_left = assign.left.generate_typed_expr(ss)?;
-                let typed_right = assign.right.generate_typed_expr(ss)?;
+                let mut typed_right = assign.right.generate_typed_expr(ss)?;
 
                 if !typed_left.is_assignable() {
                     return Err(SemanticErr::CantOp(assign.operator.clone()))
@@ -61,7 +64,9 @@ impl Expr {
                 let right_type = typed_right.final_type();
 
                 if left_type != right_type {
-                    return Err(SemanticErr::WrongType(left_type, right_type, assign.operator.clone()))
+                    if !typed_right.try_implicit_cast(&left_type) {
+                        return Err(SemanticErr::WrongType(left_type, right_type, assign.operator.clone()))
+                    }
                 }
 
                 return Ok(TypedExpr::Assign(left_type, Box::new(typed_left), Box::new(typed_right)))
@@ -241,7 +246,12 @@ impl Variable {
                 };
 
 
-                let typed_index = index.generate_typed_expr(ss)?;
+                let mut typed_index = index.generate_typed_expr(ss)?;
+                if typed_index.final_type() != ValueType::I16 {
+                    if !typed_index.try_implicit_cast(&ValueType::I16) {
+                        return Err(SemanticErr::WrongType(ValueType::I16, typed_index.final_type(), index.get_first_lexeme()))
+                    }
+                }
 
                 return Ok(TypedVariable::Array(head_item_type, Box::new(typed_array_head), typed_index))
             }
@@ -253,14 +263,19 @@ impl Variable {
 impl BinaryExpr {
     pub fn generate_typed_binary_expr(&self, ss: &ScopeStack) -> Result<TypedBinaryExpr, SemanticErr> {
         let typed_left = self.left.generate_typed_expr(ss)?;
-        let typed_right = self.right.generate_typed_expr(ss)?;
+        let mut typed_right = self.right.generate_typed_expr(ss)?;
 
-        if typed_left.final_type() != typed_right.final_type() {
-            return Err(SemanticErr::WrongType(typed_left.final_type(), typed_right.final_type(), self.operator.clone()))
+        let left_type = typed_left.final_type();
+        let right_type = typed_right.final_type();
+
+        if !left_type.is_primitive_type() {
+            return Err(SemanticErr::CantOp(self.operator.clone()))
         }
 
-        if !typed_left.final_type().is_primitive_type() {
-            return Err(SemanticErr::CantOp(self.operator.clone()))
+        if left_type != right_type {
+            if !typed_right.try_implicit_cast(&left_type) {
+                return Err(SemanticErr::WrongType(typed_left.final_type(), typed_right.final_type(), self.operator.clone()))
+            }
         }
 
         Ok(TypedBinaryExpr {
