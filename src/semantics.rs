@@ -102,7 +102,7 @@ pub fn generate_typed_ast(ast: Vec<Stmt>) -> Result<(Vec<TypedStmt>, Vec<CustomT
 
         for field in template.fields.iter() {
             new_fields.push((field.0.clone(), field.1.clone(), sum));
-            sum += field.1.size(&ss);
+            sum += field.1.size(&ss.defined_types);
         }
 
         final_struct_templates.push(StructTemplate {
@@ -215,18 +215,6 @@ impl ScopeStack {
         Err(SemanticErr::UnknownType(target))
     }
 
-    pub fn get_custom_struct(&self, target_name: String) -> Option<StructTemplate> {
-        for t in &self.defined_types {
-            if let CustomType::CustomStruct(s) = &t {
-                if s.name == target_name {
-                    return Some(s.clone())
-                }
-            }
-        }
-
-        None
-    }
-
     pub fn remove_all_structs(&mut self) {
         let mut ptr: usize = 0;
 
@@ -272,6 +260,8 @@ impl ScopeStack {
 }
 
 
+
+
 #[derive(Clone, Debug)]
 pub struct FnTemplate {
     pub name: String,
@@ -289,7 +279,7 @@ impl StructTemplate {
         for f in self.fields.iter() {
             //println!("field: {} type: {:#?}", f.0, f.1);
             if let ValueType::CustomStruct(s) = &f.1 {
-                let child_struct = ss.get_custom_struct(s.clone()).expect("should have been caught earlier");
+                let child_struct = get_custom_struct(s.clone(), &ss.defined_types).expect("should have been caught earlier");
                 child_struct.check_recursive(ss, iteration + 1)?;
             }
         }

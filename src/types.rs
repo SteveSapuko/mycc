@@ -96,6 +96,18 @@ impl EnumTemplate {
     }
 }
 
+pub fn get_custom_struct(target_name: String, defined_types: &Vec<CustomType>) -> Option<StructTemplate> {
+    for t in defined_types {
+        if let CustomType::CustomStruct(s) = &t {
+            if s.name == target_name {
+                return Some(s.clone())
+            }
+        }
+    }
+
+    None
+}
+
 impl ValueType {
     pub fn from_declr(declr: &TypeDeclr, defined_types: &Vec<CustomType>) -> Result<ValueType, SemanticErr> {
         match declr {
@@ -185,7 +197,7 @@ impl ValueType {
         }
     }
 
-    pub fn size(&self, ss: &ScopeStack) -> u16 {
+    pub fn size(&self, defined_types: &Vec<CustomType>) -> u16 {
         match self {
             Self::U8 => 1,
             Self::I8 => 1,
@@ -202,7 +214,7 @@ impl ValueType {
             Self::Pointer(_) => 2,
 
             Self::Array(item_type, size) => {
-                item_type.size(ss) * *size
+                item_type.size(defined_types) * *size
             }
 
             Self::Void => 0,
@@ -210,11 +222,11 @@ impl ValueType {
             Self::CustomEnum(_) => 1,
 
             Self::CustomStruct(struct_name) => {
-                let custom_struct = ss.get_custom_struct(struct_name.clone()).expect("should have been caught");
+                let custom_struct = get_custom_struct(struct_name.clone(), defined_types).expect("should have been caught");
                 let mut sum: u16 = 0;
 
                 for f in custom_struct.fields {
-                    sum += f.1.size(ss);
+                    sum += f.1.size(defined_types);
                 }
 
                 sum

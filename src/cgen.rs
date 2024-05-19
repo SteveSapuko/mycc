@@ -1,7 +1,6 @@
 use crate::expr::*;
 use crate::semantics::*;
-use crate::stmt::Stmt;
-use crate::stmt::TypeDeclr;
+use crate::typed_ast::*;
 use crate::types::*;
 
 use self::instruction::*;
@@ -13,31 +12,22 @@ mod known_at_compile;
 mod value;
 
 pub struct CodeGenerator {
-    ast: Vec<Stmt>,
+    ast: Vec<TypedStmt>,
     output: Vec<AssemblyCommand>,
     symbol_table: SymbolTable,
-    ss: ScopeStack,
+    defined_types: Vec<CustomType>,
+    fn_templates: Vec<FnTemplate>,
 }
 
 impl CodeGenerator {
-    pub fn new(ast: Vec<Stmt>) -> Self {
+    pub fn new(ast: Vec<TypedStmt>, defined_types: Vec<CustomType>, fn_templates: Vec<FnTemplate>) -> Self {
         CodeGenerator {
             ast: ast.clone(),
             output: vec![],
             symbol_table: SymbolTable { symbols: vec![], frame_size: 0 },
-            ss: ScopeStack::new()}
-    }
-
-    pub fn cgen(&mut self) {
-        define_scope(&mut self.ss, &self.ast).expect("should have been caught earlier");
-        
-        for stmt in self.ast.clone() {
-            stmt.cgen(self);
+            defined_types,
+            fn_templates,
         }
-    }
-
-    fn get_type_from_declr(&mut self, declr: &TypeDeclr) -> ValueType {
-        ValueType::from_declr(declr, &mut self.ss).expect("should have been caught earlier")
     }
 
     fn write_instruction(&mut self, inst: Instruction) {
@@ -45,8 +35,7 @@ impl CodeGenerator {
     }
 
     fn declare_var(&mut self, name: String, v_type: ValueType) {
-        let var_size = v_type.size(&self.ss);
-        self.ss.declare_var(name.clone(), v_type.clone());
+        let var_size = v_type.size(&self);
 
         self.symbol_table.symbols.push(Symbol::Variable(name, v_type, self.symbol_table.frame_size));
         self.symbol_table.frame_size += var_size;
@@ -254,9 +243,8 @@ pub struct SymbolTable {
     pub symbols: Vec<Symbol>,
     pub frame_size: u16,
 }
-
 enum Symbol {
     EnterScope,
+    Label(String),
     Variable(String, ValueType, u16),
-    Function(FnTemplate),
 }

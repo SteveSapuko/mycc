@@ -1,17 +1,13 @@
 use super::*;
 
 pub struct Value {
-    expr: Expr,
+    expr: TypedExpr,
     location: ValueLocation,
-    value_size: u16,
-
-    //in case of a cast, where, for example, the actual value is
-    //2 bytes large, but it's cast to a 4 byte size
-    pub uncasted_size: u16 
+    value_size: u16, 
 }
 
 impl Value {
-    pub fn new(expr: Expr, cg: &CodeGenerator) -> Self {
+    pub fn new(expr: TypedExpr, cg: &CodeGenerator) -> Self {
         let location: ValueLocation;
 
         if expr.value_known_at_compile() {

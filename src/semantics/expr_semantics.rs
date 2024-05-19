@@ -99,7 +99,7 @@ impl Expr {
                 }
 
                 if let NumLiteral::U8(shift_amount) = num {
-                    if *shift_amount > (value_type.size(ss) * 8) as u8 { //size in bits
+                    if *shift_amount > (value_type.size(&ss.defined_types) * 8) as u8 { //size in bits
                         return Err(SemanticErr::ShiftAmountErr(op.clone()))
                     }
 
@@ -215,7 +215,7 @@ impl Variable {
                 let head_type = typed_head.final_type();
 
                 if let ValueType::CustomStruct(struct_name) = head_type {
-                    let head_template = ss.get_custom_struct(struct_name).unwrap();
+                    let head_template = get_custom_struct(struct_name, &ss.defined_types).unwrap();
 
                     let typed_tail = tail.generate_typed_variable(ss, Some(head_template))?;
 
