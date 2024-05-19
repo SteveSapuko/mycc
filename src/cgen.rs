@@ -1,4 +1,3 @@
-use crate::expr::*;
 use crate::semantics::*;
 use crate::typed_ast::*;
 use crate::types::*;
@@ -35,7 +34,7 @@ impl CodeGenerator {
     }
 
     fn declare_var(&mut self, name: String, v_type: ValueType) {
-        let var_size = v_type.size(&self);
+        let var_size = v_type.size(&self.defined_types);
 
         self.symbol_table.symbols.push(Symbol::Variable(name, v_type, self.symbol_table.frame_size));
         self.symbol_table.frame_size += var_size;
@@ -51,27 +50,6 @@ impl CodeGenerator {
         }
 
         unreachable!()
-    }
-
-    fn get_var_offset_from_bp(&self, var: &Expr) -> u16 {
-        match var {
-            Expr::Assign(e) => {
-                let right = &e.1;
-                if let Expr::Primary(p) = right {
-                    if let PrimaryExpr::Variable(v) = &**p {
-                        let head_name = v.get_first_lexeme().data();
-                        let head_symbol = self.get_var(head_name);
-
-
-                    }
-                }
-
-                //this function should only be called if the right side of an assign is a Variable
-                unreachable!() 
-            }
-
-            _ => unreachable!()
-        }
     }
 
     fn increase_sp_by(&mut self, n: u16) {
@@ -93,33 +71,33 @@ impl CodeGenerator {
         self.write_instruction(Instruction::Adc(SPH));
         self.write_instruction(Instruction::Amov(SPH));
     }
-
-    ///overwrites R0
-    fn decrease_sp_by(&mut self, n: u16) {
+    
+    ///needs to overwrite a register
+    fn decrease_sp_by(&mut self, n: u16, overwrite: REG) {
         /*
-        imr R0 n[0:7]
+        imr OVERWRITE n[0:7]
         rmov SPL
-        sub R0
+        sub OVERWRITE
         amov SPL
 
-        imr R0 n[8:15]
+        imr OVERWRITE n[8:15]
         rmov SPH
-        sbc R0
+        sbc OVERWRITE
         amov SPH
         */
 
-        self.write_instruction(Instruction::Imr(R0, n as u8));
+        self.write_instruction(Instruction::Imr(overwrite, n as u8));
         self.write_instruction(Instruction::Rmov(SPL));
-        self.write_instruction(Instruction::Sub(R0));
+        self.write_instruction(Instruction::Sub(overwrite));
         self.write_instruction(Instruction::Amov(SPL));
         
-        self.write_instruction(Instruction::Imr(R0, (n >> 8) as u8));
+        self.write_instruction(Instruction::Imr(overwrite, (n >> 8) as u8));
         self.write_instruction(Instruction::Rmov(SPH));
-        self.write_instruction(Instruction::Sbc(R0));
+        self.write_instruction(Instruction::Sbc(overwrite));
         self.write_instruction(Instruction::Amov(SPH));
     }
 
-    fn ld_bp_plus_to_reg(&mut self, reg: REG, n: u16) {
+    fn ld_bp_plus_n_to_reg(&mut self, reg: REG, n: u16) {
         /*
         ima n[0:7]
         add BPL
@@ -172,79 +150,13 @@ impl CodeGenerator {
     }
 }
 
-impl Variable {
-    pub fn eval_offset_from_bp(&self, cg: &CodeGenerator, parent: Option<StructTemplate>) -> (ValueType, u16) {
-        match self {
-            Variable::Id(id) => {
-                match parent {
-                    None => {
-                        cg.get_var(id.data())
-                    }
-                    
-                    Some(parent_struct) => {
-                        return parent_struct.get_field(id.data())
-                    }
-                }
-            }
-
-            Variable::StructField(s) => {
-                let (head, tail) = &**s;
-                match parent {
-                    None => {
-                        let (head_type, head_offest_from_bp) = head.eval_offset_from_bp(cg, parent);
-                        
-                        if let ValueType::CustomStruct(struct_name) = head_type {
-                            let head_struct = cg.ss.get_custom_struct(struct_name).unwrap();
-                            let (tail_type, tail_offset_from_head) = tail.eval_offset_from_bp(cg, Some(head_struct));
-
-                            return (tail_type, head_offest_from_bp + tail_offset_from_head)
-                        }
-                        
-                        unreachable!()
-                    }
-                    
-                    Some(parent_struct) => {
-                        let (head_type, head_offset_from_parent) = head.eval_offset_from_bp(cg, parent);
-
-                        if let ValueType::CustomStruct(head_struct_name) = head_type {
-                            let head_struct_template = cg.ss.get_custom_struct(head_struct_name).expect("semantics should have caught this");
-                            let (tail_type, tail_offset_from_head) = tail.eval_offset_from_bp(cg, Some(head_struct_template));
-
-                            return (tail_type, head_offset_from_parent + tail_offset_from_head)
-                        }
-
-                        unreachable!()
-                    }
-                }
-            }
-
-            Variable::Array(array_head, array_index) => {
-                match parent {
-                    None => {
-                        let head_type = array_head.eval_offset_from_bp(cg, parent);
-
-                        if let Expr::Primary(primary_expr) = array_index {
-                            if let PrimaryExpr::NumLiteral(num_literal, _) = primary_expr {
-                                
-                            }
-                        }
-                        
-                        unreachable!()
-                    }
-
-                    ()
-                }
-            }
-        }
-    }
-}
 
 pub struct SymbolTable {
     pub symbols: Vec<Symbol>,
     pub frame_size: u16,
 }
-enum Symbol {
+
+pub enum Symbol {
     EnterScope,
-    Label(String),
     Variable(String, ValueType, u16),
 }

@@ -197,18 +197,18 @@ impl Variable {
                             }
                         };
 
-                        return Ok(TypedVariable::Id(id_type, id.data()))
+                        return Ok(TypedVariable::Id(id_type, id.data(), 0))
                     }
 
                     Some(parent_template) => {
-                        let id_type = match parent_template.get_field(id.data()) {
-                            Some((t, _)) => t,
+                        let (id_type, field_offset) = match parent_template.get_field(id.data()) {
+                            Some(t) => t,
                             None => {
                                 return Err(SemanticErr::NoStructField(parent_template, id.clone()))
                             }
                         };
 
-                        return Ok(TypedVariable::Id(id_type, id.data()))
+                        return Ok(TypedVariable::Id(id_type, id.data(), field_offset))
                     }
                 }
             }
@@ -247,9 +247,11 @@ impl Variable {
 
 
                 let mut typed_index = index.generate_typed_expr(ss)?;
-                if typed_index.final_type() != ValueType::I16 {
-                    if !typed_index.try_implicit_cast(&ValueType::I16) {
-                        return Err(SemanticErr::WrongType(ValueType::I16, typed_index.final_type(), index.get_first_lexeme()))
+                if typed_index.final_type() != ValueType::U16 {
+                    if !typed_index.try_implicit_cast(&ValueType::U16) {
+                        if !typed_index.try_implicit_cast(&ValueType::I16) {
+                            return Err(SemanticErr::WrongType(ValueType::I16, typed_index.final_type(), index.get_first_lexeme()))
+                        }
                     }
                 }
 

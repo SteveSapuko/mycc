@@ -252,6 +252,17 @@ impl ValueType {
             _ => true,
         }
     }
+
+    pub fn is_signed_type(&self) -> bool {
+        match self {
+            ValueType::I8 => true,
+            ValueType::I16 => true,
+            ValueType::I32 => true,
+            ValueType::I64 => true,
+
+            _ => false,
+        }
+    }
 }
 
 impl NumLiteral {

@@ -112,7 +112,7 @@ impl TypedPrimaryExpr {
 
 #[derive(Debug, Clone)]
 pub enum TypedVariable {
-    Id(ValueType, String),
+    Id(ValueType, String, u16),
     StructField(ValueType, Box<(TypedVariable, TypedVariable)>),
     Array(ValueType, Box<TypedVariable>, TypedExpr),
 }
@@ -120,7 +120,7 @@ pub enum TypedVariable {
 impl TypedVariable {
     pub fn final_type(&self) -> ValueType {
         match self {
-            TypedVariable::Id(t, _) => t.clone(),
+            TypedVariable::Id(t, _, _) => t.clone(),
             TypedVariable::Array(t, _, _) => t.clone(),
             TypedVariable::StructField(t, _) => t.clone(),
         }

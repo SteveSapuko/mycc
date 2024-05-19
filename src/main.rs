@@ -7,7 +7,7 @@ mod stmt;
 mod token;
 mod typed_ast;
 mod types;
-// mod cgen;
+mod cgen;
 
 use lexer::*;
 use parser::*;

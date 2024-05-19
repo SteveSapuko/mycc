@@ -7,6 +7,8 @@ pub const SPH: REG = 5;
 pub const MARL: REG = 6;
 pub const MARH: REG = 7;
 
+pub const BPL_ADDRESS: u16 = 0xffff;
+
 pub type REG = u8;
 pub type LABEL = String;
 
@@ -36,7 +38,7 @@ pub enum Instruction {
     Bnz(LABEL),
     Bsi(LABEL),
     Bpa(LABEL),
-    Acz,
+    Zac,
     Ima(REG), //REG,
     Imr(REG, u8), //REG, VALUE
     Spc,
