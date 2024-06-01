@@ -3,9 +3,9 @@ use crate::expr::NumLiteral;
 use super::*;
 
 pub struct Value {
-    expr: TypedExpr,
-    location: ValueLocation,
-    value_size: u16, 
+    pub expr: TypedExpr,
+    pub location: ValueLocation,
+    pub value_size: u16,
 }
 
 pub fn create_two_values(cg: &mut CodeGenerator, x: &TypedExpr, y: &TypedExpr) -> (Value, Value, u16) {
@@ -150,7 +150,7 @@ impl TypedExpr {
 
     pub fn get_nth_byte(&self, nth: u16, cg: &CodeGenerator) -> u8 {
         match self {
-            TypedExpr::Primary(ty, primary) => primary.get_nth_byte(nth, cg),
+            TypedExpr::Primary(_, primary) => primary.get_nth_byte(nth, cg),
 
             TypedExpr::Cast(to_type, original_expr) => {
                 let original_type = original_expr.final_type();

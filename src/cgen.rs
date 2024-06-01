@@ -3,6 +3,7 @@ use crate::typed_ast::*;
 use crate::types::*;
 
 use self::instruction::*;
+use self::value::*;
 
 pub mod instruction;
 mod expr_cgen;
@@ -148,6 +149,32 @@ impl CodeGenerator {
 
         self.write_instruction(Instruction::Ld(reg));
     }
+
+    ///loads two values to registers.
+    /// makes sure that the address that needs
+    /// to be written to is in the MAR
+    /// (in the case that one or more of the values is on top of the stack)
+    pub fn ld_nth_byte_two_values(&mut self, n: u16, values: (&Value, &Value), regs: (REG, REG)) {
+        let (x, y) = values;
+        
+        let mut n_on_stack: u8 = 0;
+
+        if matches!(x.location, ValueLocation::SpMinus(_)) {
+            n_on_stack += 1;
+        }
+
+        if matches!(y.location, ValueLocation::SpMinus(_)) {
+            n_on_stack += 1;
+        }
+
+        match n_on_stack {
+            0 => {
+
+            }
+        }
+
+
+    } 
 }
 
 
